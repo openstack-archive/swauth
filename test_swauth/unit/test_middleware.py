@@ -13,18 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from contextlib import contextmanager
 try:
     import simplejson as json
 except ImportError:
     import json
-import unittest
-from contextlib import contextmanager
 from time import time
+import unittest
 
-from swift.common.swob import Request, Response
+from swift.common.swob import Request
+from swift.common.swob import Response
 
-from swauth import middleware as auth
 from swauth.authtypes import MAX_TOKEN_LENGTH
+from swauth import middleware as auth
 
 
 DEFAULT_TOKEN_LIFE = 86400
@@ -125,45 +126,45 @@ class TestAuth(unittest.TestCase):
     def test_reseller_prefix_init(self):
         app = FakeApp()
         ath = auth.filter_factory({'super_admin_key': 'supertest'})(app)
-        self.assertEquals(ath.reseller_prefix, 'AUTH_')
+        self.assertEqual(ath.reseller_prefix, 'AUTH_')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
                                    'reseller_prefix': 'TEST'})(app)
-        self.assertEquals(ath.reseller_prefix, 'TEST_')
+        self.assertEqual(ath.reseller_prefix, 'TEST_')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
                                    'reseller_prefix': 'TEST_'})(app)
-        self.assertEquals(ath.reseller_prefix, 'TEST_')
+        self.assertEqual(ath.reseller_prefix, 'TEST_')
 
     def test_auth_prefix_init(self):
         app = FakeApp()
         ath = auth.filter_factory({'super_admin_key': 'supertest'})(app)
-        self.assertEquals(ath.auth_prefix, '/auth/')
+        self.assertEqual(ath.auth_prefix, '/auth/')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
                                    'auth_prefix': ''})(app)
-        self.assertEquals(ath.auth_prefix, '/auth/')
+        self.assertEqual(ath.auth_prefix, '/auth/')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
                                    'auth_prefix': '/test/'})(app)
-        self.assertEquals(ath.auth_prefix, '/test/')
+        self.assertEqual(ath.auth_prefix, '/test/')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
                                    'auth_prefix': '/test'})(app)
-        self.assertEquals(ath.auth_prefix, '/test/')
+        self.assertEqual(ath.auth_prefix, '/test/')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
                                    'auth_prefix': 'test/'})(app)
-        self.assertEquals(ath.auth_prefix, '/test/')
+        self.assertEqual(ath.auth_prefix, '/test/')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
                                    'auth_prefix': 'test'})(app)
-        self.assertEquals(ath.auth_prefix, '/test/')
+        self.assertEqual(ath.auth_prefix, '/test/')
 
     def test_no_auth_type_init(self):
         app = FakeApp()
         ath = auth.filter_factory({})(app)
-        self.assertEquals(ath.auth_type, 'Plaintext')
+        self.assertEqual(ath.auth_type, 'Plaintext')
 
     def test_valid_auth_type_init(self):
         app = FakeApp()
         ath = auth.filter_factory({'auth_type': 'sha1'})(app)
-        self.assertEquals(ath.auth_type, 'Sha1')
+        self.assertEqual(ath.auth_type, 'Sha1')
         ath = auth.filter_factory({'auth_type': 'plaintext'})(app)
-        self.assertEquals(ath.auth_type, 'Plaintext')
+        self.assertEqual(ath.auth_type, 'Plaintext')
 
     def test_invalid_auth_type_init(self):
         app = FakeApp()
@@ -172,47 +173,47 @@ class TestAuth(unittest.TestCase):
             auth.filter_factory({'auth_type': 'NONEXISTANT'})(app)
         except Exception as err:
             exc = err
-        self.assertEquals(str(exc),
+        self.assertEqual(str(exc),
                           'Invalid auth_type in config file: %s' %
                           'Nonexistant')
 
     def test_default_swift_cluster_init(self):
         app = FakeApp()
-        self.assertRaises(Exception, auth.filter_factory({
+        self.assertRaises(ValueError, auth.filter_factory({
             'super_admin_key': 'supertest',
             'default_swift_cluster': 'local#badscheme://host/path'}), app)
         ath = auth.filter_factory({'super_admin_key': 'supertest'})(app)
-        self.assertEquals(ath.default_swift_cluster,
+        self.assertEqual(ath.default_swift_cluster,
                           'local#http://127.0.0.1:8080/v1')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
             'default_swift_cluster': 'local#http://host/path'})(app)
-        self.assertEquals(ath.default_swift_cluster,
+        self.assertEqual(ath.default_swift_cluster,
                           'local#http://host/path')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
             'default_swift_cluster': 'local#https://host/path/'})(app)
-        self.assertEquals(ath.dsc_url, 'https://host/path')
-        self.assertEquals(ath.dsc_url2, 'https://host/path')
+        self.assertEqual(ath.dsc_url, 'https://host/path')
+        self.assertEqual(ath.dsc_url2, 'https://host/path')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
             'default_swift_cluster':
                 'local#https://host/path/#http://host2/path2/'})(app)
-        self.assertEquals(ath.dsc_url, 'https://host/path')
-        self.assertEquals(ath.dsc_url2, 'http://host2/path2')
+        self.assertEqual(ath.dsc_url, 'https://host/path')
+        self.assertEqual(ath.dsc_url2, 'http://host2/path2')
 
     def test_top_level_denied(self):
         resp = Request.blank('/').get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_anon(self):
         resp = Request.blank('/v1/AUTH_account').get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(resp.environ['swift.authorize'],
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(resp.environ['swift.authorize'],
                           self.test_auth.authorize)
 
     def test_auth_deny_non_reseller_prefix(self):
         resp = Request.blank('/v1/BLAH_account',
             headers={'X-Auth-Token': 'BLAH_t'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(resp.environ['swift.authorize'],
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(resp.environ['swift.authorize'],
                           self.test_auth.denied_response)
 
     def test_auth_deny_non_reseller_prefix_no_override(self):
@@ -221,8 +222,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Token': 'BLAH_t'},
             environ={'swift.authorize': fake_authorize}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(resp.environ['swift.authorize'], fake_authorize)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(resp.environ['swift.authorize'], fake_authorize)
 
     def test_auth_no_reseller_prefix_deny(self):
         # Ensures that when we have no reseller prefix, we don't deny a request
@@ -233,10 +234,10 @@ class TestAuth(unittest.TestCase):
                                           'reseller_prefix': ''})(local_app)
         resp = Request.blank('/v1/account',
             headers={'X-Auth-Token': 't'}).get_response(local_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         # one for checking auth, two for request passed along
-        self.assertEquals(local_app.calls, 2)
-        self.assertEquals(resp.environ['swift.authorize'],
+        self.assertEqual(local_app.calls, 2)
+        self.assertEqual(resp.environ['swift.authorize'],
                           local_auth.denied_response)
 
     def test_auth_no_reseller_prefix_allow(self):
@@ -254,9 +255,9 @@ class TestAuth(unittest.TestCase):
                                           'reseller_prefix': ''})(local_app)
         resp = Request.blank('/v1/act',
             headers={'X-Auth-Token': 't'}).get_response(local_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(local_app.calls, 2)
-        self.assertEquals(resp.environ['swift.authorize'],
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(local_app.calls, 2)
+        self.assertEqual(resp.environ['swift.authorize'],
                           local_auth.authorize)
 
     def test_auth_no_reseller_prefix_no_token(self):
@@ -265,8 +266,8 @@ class TestAuth(unittest.TestCase):
             auth.filter_factory({'super_admin_key': 'supertest',
                                  'reseller_prefix': ''})(FakeApp(iter([])))
         resp = Request.blank('/v1/account').get_response(local_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(resp.environ['swift.authorize'],
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(resp.environ['swift.authorize'],
                           local_auth.authorize)
         # Now make sure we don't override an existing swift.authorize when we
         # have no reseller prefix.
@@ -276,13 +277,13 @@ class TestAuth(unittest.TestCase):
         local_authorize = lambda req: Response('test')
         resp = Request.blank('/v1/account', environ={'swift.authorize':
             local_authorize}).get_response(local_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(resp.environ['swift.authorize'], local_authorize)
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.environ['swift.authorize'], local_authorize)
 
     def test_auth_fail(self):
         resp = Request.blank('/v1/AUTH_cfa',
             headers={'X-Auth-Token': 'AUTH_t'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_auth_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -295,8 +296,8 @@ class TestAuth(unittest.TestCase):
             ('204 No Content', {}, '')]))
         resp = Request.blank('/v1/AUTH_cfa',
             headers={'X-Auth-Token': 'AUTH_t'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_auth_memcache(self):
         # First run our test without memcache, showing we need to return the
@@ -318,11 +319,11 @@ class TestAuth(unittest.TestCase):
             ('204 No Content', {}, '')]))
         resp = Request.blank('/v1/AUTH_cfa',
             headers={'X-Auth-Token': 'AUTH_t'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
+        self.assertEqual(resp.status_int, 204)
         resp = Request.blank('/v1/AUTH_cfa',
             headers={'X-Auth-Token': 'AUTH_t'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 4)
         # Now run our test with memcache, showing we no longer need to return
         # the token contents twice.
         self.test_auth.app = FakeApp(iter([
@@ -340,13 +341,13 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Token': 'AUTH_t'},
             environ={'swift.cache': fake_memcache}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
+        self.assertEqual(resp.status_int, 204)
         resp = Request.blank('/v1/AUTH_cfa',
             headers={'X-Auth-Token': 'AUTH_t'},
             environ={'swift.cache': fake_memcache}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_auth_just_expired(self):
         self.test_auth.app = FakeApp(iter([
@@ -361,8 +362,8 @@ class TestAuth(unittest.TestCase):
             ('204 No Content', {}, '')]))
         resp = Request.blank('/v1/AUTH_cfa',
             headers={'X-Auth-Token': 'AUTH_t'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_middleware_storage_token(self):
         self.test_auth.app = FakeApp(iter([
@@ -375,50 +376,50 @@ class TestAuth(unittest.TestCase):
             ('204 No Content', {}, '')]))
         resp = Request.blank('/v1/AUTH_cfa',
             headers={'X-Storage-Token': 'AUTH_t'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_authorize_bad_path(self):
         req = Request.blank('/badpath')
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         req = Request.blank('/badpath')
         req.remote_user = 'act:usr,act,AUTH_cfa'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
     def test_authorize_account_access(self):
         req = Request.blank('/v1/AUTH_cfa')
         req.remote_user = 'act:usr,act,AUTH_cfa'
-        self.assertEquals(self.test_auth.authorize(req), None)
+        self.assertEqual(self.test_auth.authorize(req), None)
         req = Request.blank('/v1/AUTH_cfa')
         req.remote_user = 'act:usr,act'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
     def test_authorize_acl_group_access(self):
         req = Request.blank('/v1/AUTH_cfa')
         req.remote_user = 'act:usr,act'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
         req = Request.blank('/v1/AUTH_cfa')
         req.remote_user = 'act:usr,act'
         req.acl = 'act'
-        self.assertEquals(self.test_auth.authorize(req), None)
+        self.assertEqual(self.test_auth.authorize(req), None)
         req = Request.blank('/v1/AUTH_cfa')
         req.remote_user = 'act:usr,act'
         req.acl = 'act:usr'
-        self.assertEquals(self.test_auth.authorize(req), None)
+        self.assertEqual(self.test_auth.authorize(req), None)
         req = Request.blank('/v1/AUTH_cfa')
         req.remote_user = 'act:usr,act'
         req.acl = 'act2'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
         req = Request.blank('/v1/AUTH_cfa')
         req.remote_user = 'act:usr,act'
         req.acl = 'act:usr2'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
     def test_deny_cross_reseller(self):
         # Tests that cross-reseller is denied, even if ACLs/group names match
@@ -426,114 +427,114 @@ class TestAuth(unittest.TestCase):
         req.remote_user = 'act:usr,act,AUTH_cfa'
         req.acl = 'act'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
     def test_authorize_acl_referrer_access(self):
         req = Request.blank('/v1/AUTH_cfa/c')
         req.remote_user = 'act:usr,act'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
         req = Request.blank('/v1/AUTH_cfa/c')
         req.remote_user = 'act:usr,act'
         req.acl = '.r:*,.rlistings'
-        self.assertEquals(self.test_auth.authorize(req), None)
+        self.assertEqual(self.test_auth.authorize(req), None)
         req = Request.blank('/v1/AUTH_cfa/c')
         req.remote_user = 'act:usr,act'
         req.acl = '.r:*'  # No listings allowed
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
         req = Request.blank('/v1/AUTH_cfa/c')
         req.remote_user = 'act:usr,act'
         req.acl = '.r:.example.com,.rlistings'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
         req = Request.blank('/v1/AUTH_cfa/c')
         req.remote_user = 'act:usr,act'
         req.referer = 'http://www.example.com/index.html'
         req.acl = '.r:.example.com,.rlistings'
-        self.assertEquals(self.test_auth.authorize(req), None)
+        self.assertEqual(self.test_auth.authorize(req), None)
         req = Request.blank('/v1/AUTH_cfa/c')
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         req = Request.blank('/v1/AUTH_cfa/c')
         req.acl = '.r:*,.rlistings'
-        self.assertEquals(self.test_auth.authorize(req), None)
+        self.assertEqual(self.test_auth.authorize(req), None)
         req = Request.blank('/v1/AUTH_cfa/c')
         req.acl = '.r:*'  # No listings allowed
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         req = Request.blank('/v1/AUTH_cfa/c')
         req.acl = '.r:.example.com,.rlistings'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         req = Request.blank('/v1/AUTH_cfa/c')
         req.referer = 'http://www.example.com/index.html'
         req.acl = '.r:.example.com,.rlistings'
-        self.assertEquals(self.test_auth.authorize(req), None)
+        self.assertEqual(self.test_auth.authorize(req), None)
 
     def test_detect_reseller_request(self):
-        req = self._make_request('/v1/AUTH_admin', 
+        req = self._make_request('/v1/AUTH_admin',
                                  headers={'X-Auth-Token': 'AUTH_t'})
         cache_key = 'AUTH_/auth/AUTH_t'
-        cache_entry = (time()+3600, '.reseller_admin')
+        cache_entry = (time() + 3600, '.reseller_admin')
         req.environ['swift.cache'].set(cache_key, cache_entry)
-        resp = req.get_response(self.test_auth)
+        req.get_response(self.test_auth)
         self.assertTrue(req.environ.get('reseller_request'))
 
     def test_account_put_permissions(self):
         req = Request.blank('/v1/AUTH_new', environ={'REQUEST_METHOD': 'PUT'})
         req.remote_user = 'act:usr,act'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
         req = Request.blank('/v1/AUTH_new', environ={'REQUEST_METHOD': 'PUT'})
         req.remote_user = 'act:usr,act,AUTH_other'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
         # Even PUTs to your own account as account admin should fail
         req = Request.blank('/v1/AUTH_old', environ={'REQUEST_METHOD': 'PUT'})
         req.remote_user = 'act:usr,act,AUTH_old'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
         req = Request.blank('/v1/AUTH_new', environ={'REQUEST_METHOD': 'PUT'})
         req.remote_user = 'act:usr,act,.reseller_admin'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp, None)
+        self.assertEqual(resp, None)
 
         # .super_admin is not something the middleware should ever see or care
         # about
         req = Request.blank('/v1/AUTH_new', environ={'REQUEST_METHOD': 'PUT'})
         req.remote_user = 'act:usr,act,.super_admin'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
     def test_account_delete_permissions(self):
         req = Request.blank('/v1/AUTH_new',
                             environ={'REQUEST_METHOD': 'DELETE'})
         req.remote_user = 'act:usr,act'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
         req = Request.blank('/v1/AUTH_new',
                             environ={'REQUEST_METHOD': 'DELETE'})
         req.remote_user = 'act:usr,act,AUTH_other'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
         # Even DELETEs to your own account as account admin should fail
         req = Request.blank('/v1/AUTH_old',
                             environ={'REQUEST_METHOD': 'DELETE'})
         req.remote_user = 'act:usr,act,AUTH_old'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
         req = Request.blank('/v1/AUTH_new',
                             environ={'REQUEST_METHOD': 'DELETE'})
         req.remote_user = 'act:usr,act,.reseller_admin'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp, None)
+        self.assertEqual(resp, None)
 
         # .super_admin is not something the middleware should ever see or care
         # about
@@ -542,15 +543,15 @@ class TestAuth(unittest.TestCase):
         req.remote_user = 'act:usr,act,.super_admin'
         resp = self.test_auth.authorize(req)
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
     def test_get_token_fail(self):
         resp = Request.blank('/auth/v1.0').get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_get_token_fail_invalid_key(self):
         self.test_auth.app = FakeApp(iter([
@@ -562,31 +563,31 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'invalid'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_token_fail_invalid_x_auth_user_format(self):
         resp = Request.blank('/auth/v1/act/auth',
             headers={'X-Auth-User': 'usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_get_token_fail_non_matching_account_in_request(self):
         resp = Request.blank('/auth/v1/act/auth',
             headers={'X-Auth-User': 'act2:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_get_token_fail_bad_path(self):
         resp = Request.blank('/auth/v1/act/auth/invalid',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_get_token_fail_missing_key(self):
         resp = Request.blank('/auth/v1/act/auth',
             headers={'X-Auth-User': 'act:usr'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_get_token_fail_get_user_details(self):
         self.test_auth.app = FakeApp(iter([
@@ -594,8 +595,8 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_token_fail_get_account(self):
         self.test_auth.app = FakeApp(iter([
@@ -609,8 +610,8 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_get_token_fail_put_new_token(self):
         self.test_auth.app = FakeApp(iter([
@@ -626,8 +627,8 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_get_token_fail_post_to_user(self):
         self.test_auth.app = FakeApp(iter([
@@ -645,8 +646,8 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 4)
 
     def test_get_token_fail_get_services(self):
         self.test_auth.app = FakeApp(iter([
@@ -666,8 +667,8 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_get_token_fail_get_existing_token(self):
         self.test_auth.app = FakeApp(iter([
@@ -681,8 +682,8 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_get_token_success_v1_0(self):
         self.test_auth.app = FakeApp(iter([
@@ -703,17 +704,17 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assert_(resp.headers.get('x-auth-token',
+        self.assertEqual(resp.status_int, 200)
+        self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_get_token_success_v1_0_with_user_token_life(self):
         self.test_auth.app = FakeApp(iter([
@@ -735,20 +736,20 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key',
                      'X-Auth-Token-Lifetime': 10}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
+        self.assertEqual(resp.status_int, 200)
         left = int(resp.headers['x-auth-token-expires'])
         self.assertTrue(left > 0, '%d > 0' % left)
         self.assertTrue(left <= 10, '%d <= 10' % left)
-        self.assert_(resp.headers.get('x-auth-token',
+        self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_get_token_success_v1_0_with_user_token_life_past_max(self):
         self.test_auth.app = FakeApp(iter([
@@ -772,22 +773,22 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Key': 'key',
                      'X-Auth-Token-Lifetime': MAX_TOKEN_LIFE * 10})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
+        self.assertEqual(resp.status_int, 200)
         left = int(resp.headers['x-auth-token-expires'])
         self.assertTrue(left > DEFAULT_TOKEN_LIFE,
                         '%d > %d' % (left, DEFAULT_TOKEN_LIFE))
         self.assertTrue(left <= MAX_TOKEN_LIFE,
                         '%d <= %d' % (left, MAX_TOKEN_LIFE))
-        self.assert_(resp.headers.get('x-auth-token',
+        self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_get_token_success_v1_act_auth(self):
         self.test_auth.app = FakeApp(iter([
@@ -808,17 +809,17 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1/act/auth',
             headers={'X-Storage-User': 'usr',
                      'X-Storage-Pass': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assert_(resp.headers.get('x-auth-token',
+        self.assertEqual(resp.status_int, 200)
+        self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_get_token_success_storage_instead_of_auth(self):
         self.test_auth.app = FakeApp(iter([
@@ -839,17 +840,17 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Storage-User': 'act:usr',
                      'X-Storage-Pass': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assert_(resp.headers.get('x-auth-token',
+        self.assertEqual(resp.status_int, 200)
+        self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_get_token_success_v1_act_auth_auth_instead_of_storage(self):
         self.test_auth.app = FakeApp(iter([
@@ -870,17 +871,17 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1/act/auth',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assert_(resp.headers.get('x-auth-token',
+        self.assertEqual(resp.status_int, 200)
+        self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_get_token_success_existing_token(self):
         self.test_auth.app = FakeApp(iter([
@@ -900,16 +901,16 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(resp.headers.get('x-auth-token'), 'AUTH_tktest')
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.headers.get('x-auth-token'), 'AUTH_tktest')
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_get_token_success_existing_token_but_request_new_one(self):
         self.test_auth.app = FakeApp(iter([
@@ -933,16 +934,16 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key',
                      'X-Auth-New-Token': 'true'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertNotEquals(resp.headers.get('x-auth-token'), 'AUTH_tktest')
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.status_int, 200)
+        self.assertNotEqual(resp.headers.get('x-auth-token'), 'AUTH_tktest')
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 6)
+        self.assertEqual(self.test_auth.app.calls, 6)
 
     def test_get_token_success_existing_token_expired(self):
         self.test_auth.app = FakeApp(iter([
@@ -970,16 +971,16 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertNotEquals(resp.headers.get('x-auth-token'), 'AUTH_tktest')
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.status_int, 200)
+        self.assertNotEqual(resp.headers.get('x-auth-token'), 'AUTH_tktest')
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 7)
+        self.assertEqual(self.test_auth.app.calls, 7)
 
     def test_get_token_success_existing_token_expired_fail_deleting_old(self):
         self.test_auth.app = FakeApp(iter([
@@ -1007,16 +1008,16 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': 'act:usr',
                      'X-Auth-Key': 'key'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertNotEquals(resp.headers.get('x-auth-token'), 'AUTH_tktest')
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.status_int, 200)
+        self.assertNotEqual(resp.headers.get('x-auth-token'), 'AUTH_tktest')
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 7)
+        self.assertEqual(self.test_auth.app.calls, 7)
 
     def test_prep_success(self):
         list_to_iter = [
@@ -1033,27 +1034,27 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 18)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 18)
 
     def test_prep_bad_method(self):
         resp = Request.blank('/auth/v2/.prep',
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
         resp = Request.blank('/auth/v2/.prep',
             environ={'REQUEST_METHOD': 'HEAD'},
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
         resp = Request.blank('/auth/v2/.prep',
             environ={'REQUEST_METHOD': 'PUT'},
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_prep_bad_creds(self):
         resp = Request.blank('/auth/v2/.prep',
@@ -1061,26 +1062,26 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         resp = Request.blank('/auth/v2/.prep',
             environ={'REQUEST_METHOD': 'POST'},
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'upertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         resp = Request.blank('/auth/v2/.prep',
             environ={'REQUEST_METHOD': 'POST'},
             headers={'X-Auth-Admin-User': '.super_admin'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         resp = Request.blank('/auth/v2/.prep',
             environ={'REQUEST_METHOD': 'POST'},
             headers={'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
         resp = Request.blank('/auth/v2/.prep',
             environ={'REQUEST_METHOD': 'POST'}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_prep_fail_account_create(self):
         self.test_auth.app = FakeApp(iter([
@@ -1091,8 +1092,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_prep_fail_token_container_create(self):
         self.test_auth.app = FakeApp(iter([
@@ -1105,8 +1106,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_prep_fail_account_id_container_create(self):
         self.test_auth.app = FakeApp(iter([
@@ -1121,8 +1122,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_get_reseller_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -1137,10 +1138,10 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(json.loads(resp.body),
                           {"accounts": [{"name": "act"}]})
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object
@@ -1158,10 +1159,10 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(json.loads(resp.body),
                           {"accounts": [{"name": "act"}]})
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_get_reseller_fail_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -1171,8 +1172,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'super:admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (account admin, but not reseller admin)
@@ -1183,8 +1184,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (regular user)
@@ -1194,8 +1195,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:usr',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_reseller_fail_listing(self):
         self.test_auth.app = FakeApp(iter([
@@ -1205,8 +1206,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of .auth account (list containers)
@@ -1220,8 +1221,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_get_account_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -1246,14 +1247,14 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(json.loads(resp.body),
             {'account_id': 'AUTH_cfa',
              'services': {'storage':
                             {'default': 'local',
                              'local': 'http://127.0.0.1:8080/v1/AUTH_cfa'}},
              'users': [{'name': 'tester'}, {'name': 'tester3'}]})
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object
@@ -1281,26 +1282,26 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(json.loads(resp.body),
             {'account_id': 'AUTH_cfa',
              'services': {'storage':
                             {'default': 'local',
                              'local': 'http://127.0.0.1:8080/v1/AUTH_cfa'}},
              'users': [{'name': 'tester'}, {'name': 'tester3'}]})
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(self.test_auth.app.calls, 4)
 
     def test_get_account_fail_bad_account_name(self):
         resp = Request.blank('/auth/v2/.token',
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
         resp = Request.blank('/auth/v2/.anything',
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_get_account_fail_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -1310,8 +1311,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'super:admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (account admin, but wrong account)
@@ -1322,8 +1323,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act2:adm',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (regular user)
@@ -1333,8 +1334,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:usr',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_account_fail_get_services(self):
         self.test_auth.app = FakeApp(iter([
@@ -1344,8 +1345,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of .services object
@@ -1354,8 +1355,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_account_fail_listing(self):
         self.test_auth.app = FakeApp(iter([
@@ -1368,8 +1369,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
         self.test_auth.app = FakeApp(iter([
             # GET of .services object
@@ -1381,8 +1382,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
         self.test_auth.app = FakeApp(iter([
             # GET of .services object
@@ -1406,8 +1407,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_set_services_new_service(self):
         self.test_auth.app = FakeApp(iter([
@@ -1422,12 +1423,12 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest'},
             body=json.dumps({'new_service': {'new_endpoint': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(json.loads(resp.body),
             {'storage': {'default': 'local',
                          'local': 'http://127.0.0.1:8080/v1/AUTH_cfa'},
              'new_service': {'new_endpoint': 'new_value'}})
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_set_services_new_endpoint(self):
         self.test_auth.app = FakeApp(iter([
@@ -1442,12 +1443,12 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest'},
             body=json.dumps({'storage': {'new_endpoint': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(json.loads(resp.body),
             {'storage': {'default': 'local',
                          'local': 'http://127.0.0.1:8080/v1/AUTH_cfa',
                          'new_endpoint': 'new_value'}})
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_set_services_update_endpoint(self):
         self.test_auth.app = FakeApp(iter([
@@ -1462,11 +1463,11 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest'},
             body=json.dumps({'storage': {'local': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(json.loads(resp.body),
             {'storage': {'default': 'local',
                          'local': 'new_value'}})
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_set_services_fail_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -1478,8 +1479,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest'},
             body=json.dumps({'storage': {'local': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (account admin, but not reseller admin)
@@ -1492,8 +1493,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'key'},
             body=json.dumps({'storage': {'local': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (regular user)
@@ -1505,8 +1506,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'key'},
             body=json.dumps({'storage': {'local': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_set_services_fail_bad_account_name(self):
         resp = Request.blank('/auth/v2/.act/.services',
@@ -1515,7 +1516,7 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest'},
             body=json.dumps({'storage': {'local': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_set_services_fail_bad_json(self):
         resp = Request.blank('/auth/v2/act/.services',
@@ -1524,14 +1525,14 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest'},
             body='garbage'
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
         resp = Request.blank('/auth/v2/act/.services',
             environ={'REQUEST_METHOD': 'POST'},
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'},
             body=''
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_set_services_fail_get_services(self):
         self.test_auth.app = FakeApp(iter([
@@ -1543,8 +1544,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest'},
             body=json.dumps({'new_service': {'new_endpoint': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of .services object
@@ -1555,8 +1556,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest'},
             body=json.dumps({'new_service': {'new_endpoint': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_set_services_fail_put_services(self):
         self.test_auth.app = FakeApp(iter([
@@ -1571,8 +1572,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest'},
             body=json.dumps({'new_service': {'new_endpoint': 'new_value'}})
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_put_account_success(self):
         conn = FakeConn(iter([
@@ -1595,9 +1596,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 201)
-        self.assertEquals(self.test_auth.app.calls, 5)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 201)
+        self.assertEqual(self.test_auth.app.calls, 5)
+        self.assertEqual(conn.calls, 1)
 
     def test_put_account_success_preexist_but_not_completed(self):
         conn = FakeConn(iter([
@@ -1620,9 +1621,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 201)
-        self.assertEquals(self.test_auth.app.calls, 4)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 201)
+        self.assertEqual(self.test_auth.app.calls, 4)
+        self.assertEqual(conn.calls, 1)
 
     def test_put_account_success_preexist_and_completed(self):
         conn = FakeConn(iter([
@@ -1639,8 +1640,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 202)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 202)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_put_account_success_with_given_suffix(self):
         conn = FakeConn(iter([
@@ -1664,10 +1665,10 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest',
                      'X-Account-Suffix': 'test-suffix'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 201)
-        self.assertEquals(conn.request_path, '/v1/AUTH_test-suffix')
-        self.assertEquals(self.test_auth.app.calls, 5)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 201)
+        self.assertEqual(conn.request_path, '/v1/AUTH_test-suffix')
+        self.assertEqual(self.test_auth.app.calls, 5)
+        self.assertEqual(conn.calls, 1)
 
     def test_put_account_fail_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -1678,8 +1679,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'super:admin',
                      'X-Auth-Admin-Key': 'supertest'},
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (account admin, but not reseller admin)
@@ -1691,8 +1692,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'},
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (regular user)
@@ -1703,8 +1704,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:usr',
                      'X-Auth-Admin-Key': 'key'},
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_put_account_fail_invalid_account_name(self):
         resp = Request.blank('/auth/v2/.act',
@@ -1712,7 +1713,7 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'},
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_put_account_fail_on_storage_account_put(self):
         conn = FakeConn(iter([
@@ -1726,9 +1727,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(conn.calls, 1)
-        self.assertEquals(self.test_auth.app.calls, 0)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(conn.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 0)
 
     def test_put_account_fail_on_initial_account_head(self):
         conn = FakeConn(iter([
@@ -1743,8 +1744,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_put_account_fail_on_account_marker_put(self):
         conn = FakeConn(iter([
@@ -1761,8 +1762,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_put_account_fail_on_account_id_mapping(self):
         conn = FakeConn(iter([
@@ -1781,9 +1782,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(conn.calls, 1)
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(conn.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_put_account_fail_on_services_object(self):
         conn = FakeConn(iter([
@@ -1804,9 +1805,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(conn.calls, 1)
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(conn.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 4)
 
     def test_put_account_fail_on_post_mapping(self):
         conn = FakeConn(iter([
@@ -1829,9 +1830,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(conn.calls, 1)
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(conn.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_delete_account_success(self):
         conn = FakeConn(iter([
@@ -1862,9 +1863,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 6)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 6)
+        self.assertEqual(conn.calls, 1)
 
     def test_delete_account_success_missing_services(self):
         self.test_auth.app = FakeApp(iter([
@@ -1888,8 +1889,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_delete_account_success_missing_storage_account(self):
         conn = FakeConn(iter([
@@ -1920,9 +1921,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 6)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 6)
+        self.assertEqual(conn.calls, 1)
 
     def test_delete_account_success_missing_account_id_mapping(self):
         conn = FakeConn(iter([
@@ -1953,9 +1954,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 6)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 6)
+        self.assertEqual(conn.calls, 1)
 
     def test_delete_account_success_missing_account_container_at_end(self):
         conn = FakeConn(iter([
@@ -1986,9 +1987,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 6)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 6)
+        self.assertEqual(conn.calls, 1)
 
     def test_delete_account_fail_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -2000,8 +2001,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'super:admin',
                      'X-Auth-Admin-Key': 'supertest'},
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (account admin, but not reseller admin)
@@ -2014,8 +2015,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'},
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (regular user)
@@ -2027,8 +2028,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:usr',
                      'X-Auth-Admin-Key': 'key'},
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_delete_account_fail_invalid_account_name(self):
         resp = Request.blank('/auth/v2/.act',
@@ -2036,7 +2037,7 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_delete_account_fail_not_found(self):
         self.test_auth.app = FakeApp(iter([
@@ -2048,8 +2049,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_delete_account_fail_not_found_concurrency(self):
         self.test_auth.app = FakeApp(iter([
@@ -2067,8 +2068,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_delete_account_fail_list_account(self):
         self.test_auth.app = FakeApp(iter([
@@ -2080,8 +2081,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_delete_account_fail_list_account_concurrency(self):
         self.test_auth.app = FakeApp(iter([
@@ -2099,8 +2100,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_delete_account_fail_has_users(self):
         self.test_auth.app = FakeApp(iter([
@@ -2119,8 +2120,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 409)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 409)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_delete_account_fail_has_users2(self):
         self.test_auth.app = FakeApp(iter([
@@ -2142,8 +2143,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 409)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 409)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_delete_account_fail_get_services(self):
         self.test_auth.app = FakeApp(iter([
@@ -2163,8 +2164,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_delete_account_fail_delete_storage_account(self):
         conn = FakeConn(iter([
@@ -2189,9 +2190,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 409)
-        self.assertEquals(self.test_auth.app.calls, 3)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 409)
+        self.assertEqual(self.test_auth.app.calls, 3)
+        self.assertEqual(conn.calls, 1)
 
     def test_delete_account_fail_delete_storage_account2(self):
         conn = FakeConn(iter([
@@ -2219,9 +2220,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 3)
-        self.assertEquals(conn.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 3)
+        self.assertEqual(conn.calls, 2)
 
     def test_delete_account_fail_delete_storage_account3(self):
         conn = FakeConn(iter([
@@ -2246,9 +2247,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 3)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 3)
+        self.assertEqual(conn.calls, 1)
 
     def test_delete_account_fail_delete_storage_account4(self):
         conn = FakeConn(iter([
@@ -2276,9 +2277,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 3)
-        self.assertEquals(conn.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 3)
+        self.assertEqual(conn.calls, 2)
 
     def test_delete_account_fail_delete_services(self):
         conn = FakeConn(iter([
@@ -2305,9 +2306,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 4)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 4)
+        self.assertEqual(conn.calls, 1)
 
     def test_delete_account_fail_delete_account_id_mapping(self):
         conn = FakeConn(iter([
@@ -2336,9 +2337,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 5)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 5)
+        self.assertEqual(conn.calls, 1)
 
     def test_delete_account_fail_delete_account_container(self):
         conn = FakeConn(iter([
@@ -2369,9 +2370,9 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 6)
-        self.assertEquals(conn.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 6)
+        self.assertEqual(conn.calls, 1)
 
     def test_get_user_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -2384,12 +2385,12 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(resp.body, json.dumps(
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.body, json.dumps(
             {"groups": [{"name": "act:usr"}, {"name": "act"},
                         {"name": ".admin"}],
              "auth": "plaintext:key"}))
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_user_fail_no_super_admin_key(self):
         local_auth = auth.filter_factory({})(FakeApp(iter([
@@ -2402,8 +2403,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(local_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(local_auth.app.calls, 0)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(local_auth.app.calls, 0)
 
     def test_get_user_groups_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -2434,11 +2435,11 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(resp.body, json.dumps(
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.body, json.dumps(
             {"groups": [{"name": ".admin"}, {"name": "act"},
                         {"name": "act:tester"}, {"name": "act:tester3"}]}))
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(self.test_auth.app.calls, 4)
 
     def test_get_user_groups_success2(self):
         self.test_auth.app = FakeApp(iter([
@@ -2472,25 +2473,25 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(resp.body, json.dumps(
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.body, json.dumps(
             {"groups": [{"name": ".admin"}, {"name": "act"},
                         {"name": "act:tester"}, {"name": "act:tester3"}]}))
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_get_user_fail_invalid_account(self):
         resp = Request.blank('/auth/v2/.invalid/usr',
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_get_user_fail_invalid_user(self):
         resp = Request.blank('/auth/v2/act/.invalid',
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_get_user_fail_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -2500,8 +2501,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'super:admin',
                      'X-Auth-Admin-Key': 'supertest'},
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (regular user)
@@ -2511,8 +2512,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:usr',
                      'X-Auth-Admin-Key': 'key'},
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_user_account_admin_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -2528,11 +2529,11 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(resp.body, json.dumps(
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.body, json.dumps(
             {"groups": [{"name": "act:usr"}, {"name": "act"}],
              "auth": "plaintext:key"}))
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_get_user_account_admin_fail_getting_account_admin(self):
         self.test_auth.app = FakeApp(iter([
@@ -2553,8 +2554,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_get_user_account_admin_fail_getting_reseller_admin(self):
         self.test_auth.app = FakeApp(iter([
@@ -2571,8 +2572,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_get_user_reseller_admin_fail_getting_reseller_admin(self):
         self.test_auth.app = FakeApp(iter([
@@ -2589,8 +2590,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_get_user_super_admin_succeed_getting_reseller_admin(self):
         self.test_auth.app = FakeApp(iter([
@@ -2603,12 +2604,12 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assertEquals(resp.body, json.dumps(
+        self.assertEqual(resp.status_int, 200)
+        self.assertEqual(resp.body, json.dumps(
             {"groups": [{"name": "act:usr"}, {"name": "act"},
                         {"name": ".reseller_admin"}],
              "auth": "plaintext:key"}))
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_user_groups_not_found(self):
         self.test_auth.app = FakeApp(iter([
@@ -2618,8 +2619,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_user_groups_fail_listing(self):
         self.test_auth.app = FakeApp(iter([
@@ -2629,8 +2630,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_user_groups_fail_get_user(self):
         self.test_auth.app = FakeApp(iter([
@@ -2652,8 +2653,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_get_user_not_found(self):
         self.test_auth.app = FakeApp(iter([
@@ -2663,8 +2664,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_user_fail(self):
         self.test_auth.app = FakeApp(iter([
@@ -2675,8 +2676,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest',
                      'X-Auth-User-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_put_user_fail_invalid_account(self):
         resp = Request.blank('/auth/v2/.invalid/usr',
@@ -2685,7 +2686,7 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest',
                      'X-Auth-User-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_put_user_fail_invalid_user(self):
         resp = Request.blank('/auth/v2/act/.usr',
@@ -2694,7 +2695,7 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest',
                      'X-Auth-User-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_put_user_fail_no_user_key(self):
         resp = Request.blank('/auth/v2/act/usr',
@@ -2702,7 +2703,7 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_put_user_reseller_admin_fail_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -2723,8 +2724,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-User-Key': 'key',
                      'X-Auth-User-Reseller-Admin': 'true'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # Checking if user is changing his own key. This is called.
@@ -2744,8 +2745,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-User-Key': 'key',
                      'X-Auth-User-Reseller-Admin': 'true'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         self.test_auth.app = FakeApp(iter([
             # Checking if user is changing his own key. This is called.
@@ -2763,8 +2764,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-User-Key': 'key',
                      'X-Auth-User-Reseller-Admin': 'true'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_put_user_account_admin_fail_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -2783,8 +2784,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-User-Key': 'key',
                      'X-Auth-User-Admin': 'true'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (regular user)
@@ -2800,8 +2801,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-User-Key': 'key',
                      'X-Auth-User-Admin': 'true'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_put_user_regular_fail_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -2820,8 +2821,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'key',
                      'X-Auth-User-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
         self.test_auth.app = FakeApp(iter([
             # GET of user object (regular user)
@@ -2836,8 +2837,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'key',
                      'X-Auth-User-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_put_user_regular_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -2850,9 +2851,9 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest',
                      'X-Auth-User-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 201)
-        self.assertEquals(self.test_auth.app.calls, 2)
-        self.assertEquals(json.loads(self.test_auth.app.request.body),
+        self.assertEqual(resp.status_int, 201)
+        self.assertEqual(self.test_auth.app.calls, 2)
+        self.assertEqual(json.loads(self.test_auth.app.request.body),
             {"groups": [{"name": "act:usr"}, {"name": "act"}],
              "auth": "plaintext:key"})
 
@@ -2867,9 +2868,9 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest',
                      'X-Auth-User-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 201)
-        self.assertEquals(self.test_auth.app.calls, 2)
-        self.assertEquals(json.loads(self.test_auth.app.request.body),
+        self.assertEqual(resp.status_int, 201)
+        self.assertEqual(self.test_auth.app.calls, 2)
+        self.assertEqual(json.loads(self.test_auth.app.request.body),
             {"groups": [{"name": "act:u_s-r"}, {"name": "act"}],
              "auth": "plaintext:key"})
 
@@ -2885,9 +2886,9 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-User-Key': 'key',
                      'X-Auth-User-Admin': 'true'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 201)
-        self.assertEquals(self.test_auth.app.calls, 2)
-        self.assertEquals(json.loads(self.test_auth.app.request.body),
+        self.assertEqual(resp.status_int, 201)
+        self.assertEqual(self.test_auth.app.calls, 2)
+        self.assertEqual(json.loads(self.test_auth.app.request.body),
             {"groups": [{"name": "act:usr"}, {"name": "act"},
                         {"name": ".admin"}],
              "auth": "plaintext:key"})
@@ -2904,9 +2905,9 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-User-Key': 'key',
                      'X-Auth-User-Reseller-Admin': 'true'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 201)
-        self.assertEquals(self.test_auth.app.calls, 2)
-        self.assertEquals(json.loads(self.test_auth.app.request.body),
+        self.assertEqual(resp.status_int, 201)
+        self.assertEqual(self.test_auth.app.calls, 2)
+        self.assertEqual(json.loads(self.test_auth.app.request.body),
             {"groups": [{"name": "act:usr"}, {"name": "act"},
                         {"name": ".admin"}, {"name": ".reseller_admin"}],
              "auth": "plaintext:key"})
@@ -2922,8 +2923,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest',
                      'X-Auth-User-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_put_user_fail(self):
         self.test_auth.app = FakeApp(iter([
@@ -2935,8 +2936,8 @@ class TestAuth(unittest.TestCase):
                      'X-Auth-Admin-Key': 'supertest',
                      'X-Auth-User-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_delete_user_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
@@ -2952,8 +2953,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act2:adm',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
         self.test_auth.app = FakeApp(iter([
             ('200 Ok', {}, json.dumps({"groups": [{"name": "act:usr"},
@@ -2966,8 +2967,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': 'act:usr',
                      'X-Auth-Admin-Key': 'key'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_delete_reseller_admin_user_fail(self):
         self.test_auth.app = FakeApp(iter([
@@ -2988,8 +2989,8 @@ class TestAuth(unittest.TestCase):
                                  'act2:adm',
                                  'X-Auth-Admin-Key': 'key'}
                              ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 403)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 403)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_delete_reseller_admin_user_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -3013,8 +3014,8 @@ class TestAuth(unittest.TestCase):
                                  '.super_admin',
                                  'X-Auth-Admin-Key': 'supertest'}
                              ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 4)
 
     def test_delete_user_invalid_account(self):
         resp = Request.blank('/auth/v2/.invalid/usr',
@@ -3022,7 +3023,7 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_delete_user_invalid_user(self):
         resp = Request.blank('/auth/v2/act/.invalid',
@@ -3030,7 +3031,7 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        self.assertEqual(resp.status_int, 400)
 
     def test_delete_user_not_found(self):
         self.test_auth.app = FakeApp(iter([
@@ -3041,8 +3042,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_delete_user_fail_head_user(self):
         self.test_auth.app = FakeApp(iter([
@@ -3053,8 +3054,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_delete_user_fail_delete_token(self):
         self.test_auth.app = FakeApp(iter([
@@ -3070,8 +3071,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_delete_user_fail_delete_user(self):
         self.test_auth.app = FakeApp(iter([
@@ -3089,8 +3090,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(resp.status_int, 500)
+        self.assertEqual(self.test_auth.app.calls, 4)
 
     def test_delete_user_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -3108,8 +3109,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 4)
 
     def test_delete_user_success_missing_user_at_end(self):
         self.test_auth.app = FakeApp(iter([
@@ -3127,8 +3128,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 4)
 
     def test_delete_user_success_missing_token(self):
         self.test_auth.app = FakeApp(iter([
@@ -3146,8 +3147,8 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 4)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 4)
 
     def test_delete_user_success_no_token(self):
         self.test_auth.app = FakeApp(iter([
@@ -3163,18 +3164,18 @@ class TestAuth(unittest.TestCase):
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 3)
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_validate_token_bad_prefix(self):
-        resp = Request.blank('/auth/v2/.token/BAD_token'
-                            ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        resp = Request.blank('/auth/v2/.token/BAD_token') \
+            .get_response(self.test_auth)
+        self.assertEqual(resp.status_int, 400)
 
     def test_validate_token_tmi(self):
-        resp = Request.blank('/auth/v2/.token/AUTH_token/tmi'
-                            ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
+        resp = Request.blank('/auth/v2/.token/AUTH_token/tmi') \
+            .get_response(self.test_auth)
+        self.assertEqual(resp.status_int, 400)
 
     def test_validate_token_bad_memcache(self):
         fake_memcache = FakeMemcache()
@@ -3182,7 +3183,7 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v2/.token/AUTH_token',
             environ={'swift.cache':
             fake_memcache}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
+        self.assertEqual(resp.status_int, 500)
 
     def test_validate_token_from_memcache(self):
         fake_memcache = FakeMemcache()
@@ -3190,9 +3191,9 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v2/.token/AUTH_token',
             environ={'swift.cache':
             fake_memcache}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(resp.headers.get('x-auth-groups'), 'act:usr,act')
-        self.assert_(float(resp.headers['x-auth-ttl']) < 1,
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(resp.headers.get('x-auth-groups'), 'act:usr,act')
+        self.assertTrue(float(resp.headers['x-auth-ttl']) < 1,
                      resp.headers['x-auth-ttl'])
 
     def test_validate_token_from_memcache_expired(self):
@@ -3201,9 +3202,9 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v2/.token/AUTH_token',
             environ={'swift.cache':
             fake_memcache}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assert_('x-auth-groups' not in resp.headers)
-        self.assert_('x-auth-ttl' not in resp.headers)
+        self.assertEqual(resp.status_int, 404)
+        self.assertTrue('x-auth-groups' not in resp.headers)
+        self.assertTrue('x-auth-ttl' not in resp.headers)
 
     def test_validate_token_from_object(self):
         self.test_auth.app = FakeApp(iter([
@@ -3212,10 +3213,10 @@ class TestAuth(unittest.TestCase):
              {'name': 'act'}], 'expires': time() + 1}))]))
         resp = Request.blank('/auth/v2/.token/AUTH_token'
                              ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 1)
-        self.assertEquals(resp.headers.get('x-auth-groups'), 'act:usr,act')
-        self.assert_(float(resp.headers['x-auth-ttl']) < 1,
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.headers.get('x-auth-groups'), 'act:usr,act')
+        self.assertTrue(float(resp.headers['x-auth-ttl']) < 1,
                      resp.headers['x-auth-ttl'])
 
     def test_validate_token_from_object_expired(self):
@@ -3227,8 +3228,8 @@ class TestAuth(unittest.TestCase):
             ('204 No Content', {}, '')]))
         resp = Request.blank('/auth/v2/.token/AUTH_token'
                              ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
-        self.assertEquals(self.test_auth.app.calls, 2)
+        self.assertEqual(resp.status_int, 404)
+        self.assertEqual(self.test_auth.app.calls, 2)
 
     def test_validate_token_from_object_with_admin(self):
         self.test_auth.app = FakeApp(iter([
@@ -3238,76 +3239,76 @@ class TestAuth(unittest.TestCase):
              'expires': time() + 1}))]))
         resp = Request.blank('/auth/v2/.token/AUTH_token'
                              ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(self.test_auth.app.calls, 1)
-        self.assertEquals(resp.headers.get('x-auth-groups'),
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(self.test_auth.app.calls, 1)
+        self.assertEqual(resp.headers.get('x-auth-groups'),
                           'act:usr,act,AUTH_cfa')
-        self.assert_(float(resp.headers['x-auth-ttl']) < 1,
+        self.assertTrue(float(resp.headers['x-auth-ttl']) < 1,
                      resp.headers['x-auth-ttl'])
 
     def test_get_conn_default(self):
         conn = self.test_auth.get_conn()
-        self.assertEquals(conn.__class__, auth.HTTPConnection)
-        self.assertEquals(conn.host, '127.0.0.1')
-        self.assertEquals(conn.port, 8080)
+        self.assertEqual(conn.__class__, auth.HTTPConnection)
+        self.assertEqual(conn.host, '127.0.0.1')
+        self.assertEqual(conn.port, 8080)
 
     def test_get_conn_default_https(self):
         local_auth = auth.filter_factory({'super_admin_key': 'supertest',
             'default_swift_cluster': 'local#https://1.2.3.4/v1'})(FakeApp())
         conn = local_auth.get_conn()
-        self.assertEquals(conn.__class__, auth.HTTPSConnection)
-        self.assertEquals(conn.host, '1.2.3.4')
-        self.assertEquals(conn.port, 443)
+        self.assertEqual(conn.__class__, auth.HTTPSConnection)
+        self.assertEqual(conn.host, '1.2.3.4')
+        self.assertEqual(conn.port, 443)
 
     def test_get_conn_overridden(self):
         local_auth = auth.filter_factory({'super_admin_key': 'supertest',
             'default_swift_cluster': 'local#https://1.2.3.4/v1'})(FakeApp())
         conn = \
             local_auth.get_conn(urlparsed=auth.urlparse('http://5.6.7.8/v1'))
-        self.assertEquals(conn.__class__, auth.HTTPConnection)
-        self.assertEquals(conn.host, '5.6.7.8')
-        self.assertEquals(conn.port, 80)
+        self.assertEqual(conn.__class__, auth.HTTPConnection)
+        self.assertEqual(conn.host, '5.6.7.8')
+        self.assertEqual(conn.port, 80)
 
     def test_get_conn_overridden_https(self):
         local_auth = auth.filter_factory({'super_admin_key': 'supertest',
             'default_swift_cluster': 'local#http://1.2.3.4/v1'})(FakeApp())
         conn = \
             local_auth.get_conn(urlparsed=auth.urlparse('https://5.6.7.8/v1'))
-        self.assertEquals(conn.__class__, auth.HTTPSConnection)
-        self.assertEquals(conn.host, '5.6.7.8')
-        self.assertEquals(conn.port, 443)
+        self.assertEqual(conn.__class__, auth.HTTPSConnection)
+        self.assertEqual(conn.host, '5.6.7.8')
+        self.assertEqual(conn.port, 443)
 
     def test_get_itoken_fail_no_memcache(self):
         exc = None
         try:
             self.test_auth.get_itoken({})
-        except Exception, err:
+        except Exception as err:
             exc = err
-        self.assertEquals(str(exc),
+        self.assertEqual(str(exc),
                           'No memcache set up; required for Swauth middleware')
 
     def test_get_itoken_success(self):
         fmc = FakeMemcache()
         itk = self.test_auth.get_itoken({'swift.cache': fmc})
-        self.assert_(itk.startswith('AUTH_itk'), itk)
+        self.assertTrue(itk.startswith('AUTH_itk'), itk)
         expires, groups = fmc.get('AUTH_/auth/%s' % itk)
-        self.assert_(expires > time(), expires)
-        self.assertEquals(groups, '.auth,.reseller_admin,AUTH_.auth')
+        self.assertTrue(expires > time(), expires)
+        self.assertEqual(groups, '.auth,.reseller_admin,AUTH_.auth')
 
     def test_get_admin_detail_fail_no_colon(self):
         self.test_auth.app = FakeApp(iter([]))
-        self.assertEquals(self.test_auth.get_admin_detail(Request.blank('/')),
+        self.assertEqual(self.test_auth.get_admin_detail(Request.blank('/')),
                           None)
-        self.assertEquals(self.test_auth.get_admin_detail(Request.blank('/',
+        self.assertEqual(self.test_auth.get_admin_detail(Request.blank('/',
             headers={'X-Auth-Admin-User': 'usr'})), None)
         self.assertRaises(StopIteration, self.test_auth.get_admin_detail,
             Request.blank('/', headers={'X-Auth-Admin-User': 'act:usr'}))
 
     def test_get_admin_detail_fail_user_not_found(self):
         self.test_auth.app = FakeApp(iter([('404 Not Found', {}, '')]))
-        self.assertEquals(self.test_auth.get_admin_detail(Request.blank('/',
+        self.assertEqual(self.test_auth.get_admin_detail(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act:usr'})), None)
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_admin_detail_fail_get_user_error(self):
         self.test_auth.app = FakeApp(iter([
@@ -3316,11 +3317,11 @@ class TestAuth(unittest.TestCase):
         try:
             self.test_auth.get_admin_detail(Request.blank('/',
                 headers={'X-Auth-Admin-User': 'act:usr'}))
-        except Exception, err:
+        except Exception as err:
             exc = err
-        self.assertEquals(str(exc), 'Could not get user object: '
+        self.assertEqual(str(exc), 'Could not get user object: '
             '/v1/AUTH_.auth/act/usr 503 Service Unavailable')
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_get_admin_detail_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -3330,8 +3331,8 @@ class TestAuth(unittest.TestCase):
                                     {'name': ".admin"}]}))]))
         detail = self.test_auth.get_admin_detail(Request.blank('/',
                     headers={'X-Auth-Admin-User': 'act:usr'}))
-        self.assertEquals(self.test_auth.app.calls, 1)
-        self.assertEquals(detail, {'account': 'act',
+        self.assertEqual(self.test_auth.app.calls, 1)
+        self.assertEqual(detail, {'account': 'act',
             'auth': 'plaintext:key',
             'groups': [{'name': 'act:usr'}, {'name': 'act'},
                        {'name': '.admin'}]})
@@ -3346,9 +3347,9 @@ class TestAuth(unittest.TestCase):
             Request.blank('/',
                           headers={'X-Auth-Admin-User': 'act:usr'}),
                           'act', 'usr')
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
         detail_json = json.loads(detail)
-        self.assertEquals("plaintext:key", detail_json['auth'])
+        self.assertEqual("plaintext:key", detail_json['auth'])
 
     def test_get_user_detail_fail_user_doesnt_exist(self):
         self.test_auth.app = FakeApp(
@@ -3357,23 +3358,23 @@ class TestAuth(unittest.TestCase):
             Request.blank('/',
                           headers={'X-Auth-Admin-User': 'act:usr'}),
                           'act', 'usr')
-        self.assertEquals(self.test_auth.app.calls, 1)
-        self.assertEquals(detail, None)
+        self.assertEqual(self.test_auth.app.calls, 1)
+        self.assertEqual(detail, None)
 
     def test_get_user_detail_fail_exception(self):
         self.test_auth.app = FakeApp(iter([
             ('503 Service Unavailable', {}, '')]))
         exc = None
         try:
-            detail = self.test_auth.get_user_detail(
+            self.test_auth.get_user_detail(
                 Request.blank('/',
                               headers={'X-Auth-Admin-User': 'act:usr'}),
                               'act', 'usr')
         except Exception as err:
             exc = err
-        self.assertEquals(str(exc), 'Could not get user object: '
+        self.assertEqual(str(exc), 'Could not get user object: '
                           '/v1/AUTH_.auth/act/usr 503 Service Unavailable')
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_is_user_reseller_admin_success(self):
         self.test_auth.app = FakeApp(iter([
@@ -3385,7 +3386,7 @@ class TestAuth(unittest.TestCase):
             Request.blank('/',
                           headers={'X-Auth-Admin-User': 'act:usr'}),
                           'act', 'usr')
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
         self.assertTrue(result)
 
     def test_is_user_reseller_admin_fail(self):
@@ -3398,7 +3399,7 @@ class TestAuth(unittest.TestCase):
             Request.blank('/',
                           headers={'X-Auth-Admin-User': 'act:usr'}),
                           'act', 'usr')
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
         self.assertFalse(result)
 
     def test_is_user_reseller_admin_fail_user_doesnt_exist(self):
@@ -3406,19 +3407,19 @@ class TestAuth(unittest.TestCase):
             iter([('404 Not Found', {}, '')]))
         req = Request.blank('/', headers={'X-Auth-Admin-User': 'act:usr'})
         result = self.test_auth.is_user_reseller_admin(req, 'act', 'usr')
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
         self.assertFalse(result)
         self.assertFalse(req.credentials_valid)
 
     def test_credentials_match_success(self):
-        self.assert_(self.test_auth.credentials_match(
+        self.assertTrue(self.test_auth.credentials_match(
             {'auth': 'plaintext:key'}, 'key'))
 
     def test_credentials_match_fail_no_details(self):
-        self.assert_(not self.test_auth.credentials_match(None, 'notkey'))
+        self.assertTrue(not self.test_auth.credentials_match(None, 'notkey'))
 
     def test_credentials_match_fail_plaintext(self):
-        self.assert_(not self.test_auth.credentials_match(
+        self.assertTrue(not self.test_auth.credentials_match(
             {'auth': 'plaintext:key'}, 'notkey'))
 
     def test_is_user_changing_own_key_err(self):
@@ -3432,9 +3433,9 @@ class TestAuth(unittest.TestCase):
                                 'X-Auth-Admin-User': 'act:usr',
                                 'X-Auth-Admin-Key': 'key',
                                 'X-Auth-User-Key': 'key'})
-        self.assert_(
+        self.assertTrue(
             not self.test_auth.is_user_changing_own_key(req, 'act:usr'))
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         # user attempting to escalate himself as admin
         self.test_auth.app = FakeApp(iter([
@@ -3448,9 +3449,9 @@ class TestAuth(unittest.TestCase):
                                 'X-Auth-Admin-Key': 'key',
                                 'X-Auth-User-Key': 'key',
                                 'X-Auth-User-Admin': 'true'})
-        self.assert_(
+        self.assertTrue(
             not self.test_auth.is_user_changing_own_key(req, 'act:usr'))
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         # admin attempting to escalate himself as reseller_admin
         self.test_auth.app = FakeApp(iter([
@@ -3465,9 +3466,9 @@ class TestAuth(unittest.TestCase):
                                 'X-Auth-Admin-Key': 'key',
                                 'X-Auth-User-Key': 'key',
                                 'X-Auth-User-Reseller-Admin': 'true'})
-        self.assert_(
+        self.assertTrue(
             not self.test_auth.is_user_changing_own_key(req, 'act:adm'))
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         # different user
         self.test_auth.app = FakeApp(iter([
@@ -3480,9 +3481,9 @@ class TestAuth(unittest.TestCase):
                                 'X-Auth-Admin-User': 'act:usr',
                                 'X-Auth-Admin-Key': 'key',
                                 'X-Auth-User-Key': 'key'})
-        self.assert_(
+        self.assertTrue(
             not self.test_auth.is_user_changing_own_key(req, 'act:usr2'))
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
         # wrong key
         self.test_auth.app = FakeApp(iter([
@@ -3495,33 +3496,33 @@ class TestAuth(unittest.TestCase):
                                 'X-Auth-Admin-User': 'act:usr',
                                 'X-Auth-Admin-Key': 'wrongkey',
                                 'X-Auth-User-Key': 'newkey'})
-        self.assert_(
+        self.assertTrue(
             not self.test_auth.is_user_changing_own_key(req, 'act:usr'))
-        self.assertEquals(self.test_auth.app.calls, 1)
+        self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_is_super_admin_success(self):
-        self.assert_(self.test_auth.is_super_admin(Request.blank('/',
+        self.assertTrue(self.test_auth.is_super_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'})))
 
     def test_is_super_admin_fail_bad_key(self):
-        self.assert_(not self.test_auth.is_super_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_super_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'bad'})))
-        self.assert_(not self.test_auth.is_super_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_super_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': '.super_admin'})))
-        self.assert_(not self.test_auth.is_super_admin(Request.blank('/')))
+        self.assertTrue(not self.test_auth.is_super_admin(Request.blank('/')))
 
     def test_is_super_admin_fail_bad_user(self):
-        self.assert_(not self.test_auth.is_super_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_super_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'bad',
                      'X-Auth-Admin-Key': 'supertest'})))
-        self.assert_(not self.test_auth.is_super_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_super_admin(Request.blank('/',
             headers={'X-Auth-Admin-Key': 'supertest'})))
-        self.assert_(not self.test_auth.is_super_admin(Request.blank('/')))
+        self.assertTrue(not self.test_auth.is_super_admin(Request.blank('/')))
 
     def test_is_reseller_admin_success_is_super_admin(self):
-        self.assert_(self.test_auth.is_reseller_admin(Request.blank('/',
+        self.assertTrue(self.test_auth.is_reseller_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'})))
 
@@ -3532,7 +3533,7 @@ class TestAuth(unittest.TestCase):
                          'groups': [{'name': 'act:rdm'}, {'name': 'act'},
                                     {'name': '.admin'},
                                     {'name': '.reseller_admin'}]}))]))
-        self.assert_(self.test_auth.is_reseller_admin(Request.blank('/',
+        self.assertTrue(self.test_auth.is_reseller_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act:rdm',
                      'X-Auth-Admin-Key': 'key'})))
 
@@ -3542,7 +3543,7 @@ class TestAuth(unittest.TestCase):
              json.dumps({'auth': 'plaintext:key',
                          'groups': [{'name': 'act:adm'}, {'name': 'act'},
                                     {'name': '.admin'}]}))]))
-        self.assert_(not self.test_auth.is_reseller_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_reseller_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'})))
 
@@ -3551,7 +3552,7 @@ class TestAuth(unittest.TestCase):
             ('200 Ok', {},
              json.dumps({'auth': 'plaintext:key',
                          'groups': [{'name': 'act:usr'}, {'name': 'act'}]}))]))
-        self.assert_(not self.test_auth.is_reseller_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_reseller_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act:usr',
                      'X-Auth-Admin-Key': 'key'})))
 
@@ -3562,12 +3563,12 @@ class TestAuth(unittest.TestCase):
                          'groups': [{'name': 'act:rdm'}, {'name': 'act'},
                                     {'name': '.admin'},
                                     {'name': '.reseller_admin'}]}))]))
-        self.assert_(not self.test_auth.is_reseller_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_reseller_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act:rdm',
                      'X-Auth-Admin-Key': 'bad'})))
 
     def test_is_account_admin_success_is_super_admin(self):
-        self.assert_(self.test_auth.is_account_admin(Request.blank('/',
+        self.assertTrue(self.test_auth.is_account_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}), 'act'))
 
@@ -3578,7 +3579,7 @@ class TestAuth(unittest.TestCase):
                          'groups': [{'name': 'act:rdm'}, {'name': 'act'},
                                     {'name': '.admin'},
                                     {'name': '.reseller_admin'}]}))]))
-        self.assert_(self.test_auth.is_account_admin(Request.blank('/',
+        self.assertTrue(self.test_auth.is_account_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act:rdm',
                      'X-Auth-Admin-Key': 'key'}), 'act'))
 
@@ -3588,7 +3589,7 @@ class TestAuth(unittest.TestCase):
              json.dumps({'auth': 'plaintext:key',
                          'groups': [{'name': 'act:adm'}, {'name': 'act'},
                                     {'name': '.admin'}]}))]))
-        self.assert_(self.test_auth.is_account_admin(Request.blank('/',
+        self.assertTrue(self.test_auth.is_account_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act:adm',
                      'X-Auth-Admin-Key': 'key'}), 'act'))
 
@@ -3598,7 +3599,7 @@ class TestAuth(unittest.TestCase):
              json.dumps({'auth': 'plaintext:key',
                          'groups': [{'name': 'act2:adm'}, {'name': 'act2'},
                                     {'name': '.admin'}]}))]))
-        self.assert_(not self.test_auth.is_account_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_account_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act2:adm',
                      'X-Auth-Admin-Key': 'key'}), 'act'))
 
@@ -3607,7 +3608,7 @@ class TestAuth(unittest.TestCase):
             ('200 Ok', {},
              json.dumps({'auth': 'plaintext:key',
                          'groups': [{'name': 'act:usr'}, {'name': 'act'}]}))]))
-        self.assert_(not self.test_auth.is_account_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_account_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act:usr',
                      'X-Auth-Admin-Key': 'key'}), 'act'))
 
@@ -3618,7 +3619,7 @@ class TestAuth(unittest.TestCase):
                          'groups': [{'name': 'act:rdm'}, {'name': 'act'},
                                     {'name': '.admin'},
                                     {'name': '.reseller_admin'}]}))]))
-        self.assert_(not self.test_auth.is_account_admin(Request.blank('/',
+        self.assertTrue(not self.test_auth.is_account_admin(Request.blank('/',
             headers={'X-Auth-Admin-User': 'act:rdm',
                      'X-Auth-Admin-Key': 'bad'}), 'act'))
 
@@ -3627,13 +3628,13 @@ class TestAuth(unittest.TestCase):
                             environ={'REQUEST_METHOD': 'GET'})
         req.remote_user = 'act:usr,act,.reseller_admin'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
     def test_reseller_admin_but_account_is_exactly_reseller_prefix(self):
         req = Request.blank('/v1/AUTH_', environ={'REQUEST_METHOD': 'GET'})
         req.remote_user = 'act:usr,act,.reseller_admin'
         resp = self.test_auth.authorize(req)
-        self.assertEquals(resp.status_int, 403)
+        self.assertEqual(resp.status_int, 403)
 
     def _get_token_success_v1_0_encoded(self, saved_user, saved_key, sent_user,
                                         sent_key):
@@ -3655,17 +3656,17 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/auth/v1.0',
             headers={'X-Auth-User': sent_user,
                      'X-Auth-Key': sent_key}).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 200)
-        self.assert_(resp.headers.get('x-auth-token',
+        self.assertEqual(resp.status_int, 200)
+        self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
-        self.assertEquals(resp.headers.get('x-auth-token'),
+        self.assertEqual(resp.headers.get('x-auth-token'),
                           resp.headers.get('x-storage-token'))
-        self.assertEquals(resp.headers.get('x-storage-url'),
+        self.assertEqual(resp.headers.get('x-storage-url'),
                           'http://127.0.0.1:8080/v1/AUTH_cfa')
-        self.assertEquals(json.loads(resp.body),
+        self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
-        self.assertEquals(self.test_auth.app.calls, 5)
+        self.assertEqual(self.test_auth.app.calls, 5)
 
     def test_get_token_success_v1_0_encoded1(self):
         self._get_token_success_v1_0_encoded(
@@ -3681,11 +3682,11 @@ class TestAuth(unittest.TestCase):
 
     def test_allowed_sync_hosts(self):
         a = auth.filter_factory({'super_admin_key': 'supertest'})(FakeApp())
-        self.assertEquals(a.allowed_sync_hosts, ['127.0.0.1'])
+        self.assertEqual(a.allowed_sync_hosts, ['127.0.0.1'])
         a = auth.filter_factory({'super_admin_key': 'supertest',
             'allowed_sync_hosts':
                 '1.1.1.1,2.1.1.1, 3.1.1.1 , 4.1.1.1,, , 5.1.1.1'})(FakeApp())
-        self.assertEquals(a.allowed_sync_hosts,
+        self.assertEqual(a.allowed_sync_hosts,
             ['1.1.1.1', '2.1.1.1', '3.1.1.1', '4.1.1.1', '5.1.1.1'])
 
     def test_reseller_admin_is_owner(self):
@@ -3709,8 +3710,8 @@ class TestAuth(unittest.TestCase):
             ('204 No Content', {}, '')]))
         req = Request.blank('/v1/AUTH_cfa', headers={'X-Auth-Token': 'AUTH_t'})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(owner_values, [True])
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(owner_values, [True])
 
     def test_admin_is_owner(self):
         orig_authorize = self.test_auth.authorize
@@ -3733,8 +3734,8 @@ class TestAuth(unittest.TestCase):
             ('204 No Content', {}, '')]))
         req = Request.blank('/v1/AUTH_cfa', headers={'X-Auth-Token': 'AUTH_t'})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(owner_values, [True])
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(owner_values, [True])
 
     def test_regular_is_not_owner(self):
         orig_authorize = self.test_auth.authorize
@@ -3757,8 +3758,8 @@ class TestAuth(unittest.TestCase):
         req = Request.blank('/v1/AUTH_cfa/c',
                             headers={'X-Auth-Token': 'AUTH_t'})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
-        self.assertEquals(owner_values, [False])
+        self.assertEqual(resp.status_int, 204)
+        self.assertEqual(owner_values, [False])
 
     def test_sync_request_success(self):
         self.test_auth.app = FakeApp(iter([('204 No Content', {}, '')]),
@@ -3769,7 +3770,7 @@ class TestAuth(unittest.TestCase):
                      'x-timestamp': '123.456'})
         req.remote_addr = '127.0.0.1'
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
+        self.assertEqual(resp.status_int, 204)
 
     def test_sync_request_fail_key(self):
         self.test_auth.app = FakeApp(iter([('204 No Content', {}, '')]),
@@ -3780,7 +3781,7 @@ class TestAuth(unittest.TestCase):
                      'x-timestamp': '123.456'})
         req.remote_addr = '127.0.0.1'
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
         self.test_auth.app = FakeApp(iter([('204 No Content', {}, '')]),
                                      sync_key='othersecret')
@@ -3790,7 +3791,7 @@ class TestAuth(unittest.TestCase):
                      'x-timestamp': '123.456'})
         req.remote_addr = '127.0.0.1'
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
         self.test_auth.app = FakeApp(iter([('204 No Content', {}, '')]),
                                      sync_key=None)
@@ -3800,7 +3801,7 @@ class TestAuth(unittest.TestCase):
                      'x-timestamp': '123.456'})
         req.remote_addr = '127.0.0.1'
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_sync_request_fail_no_timestamp(self):
         self.test_auth.app = FakeApp(iter([('204 No Content', {}, '')]),
@@ -3810,7 +3811,7 @@ class TestAuth(unittest.TestCase):
             headers={'x-container-sync-key': 'secret'})
         req.remote_addr = '127.0.0.1'
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_sync_request_fail_sync_host(self):
         self.test_auth.app = FakeApp(iter([('204 No Content', {}, '')]),
@@ -3821,7 +3822,7 @@ class TestAuth(unittest.TestCase):
                      'x-timestamp': '123.456'})
         req.remote_addr = '127.0.0.2'
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
+        self.assertEqual(resp.status_int, 401)
 
     def test_sync_request_success_lb_sync_host(self):
         self.test_auth.app = FakeApp(iter([('204 No Content', {}, '')]),
@@ -3833,7 +3834,7 @@ class TestAuth(unittest.TestCase):
                      'x-forwarded-for': '127.0.0.1'})
         req.remote_addr = '127.0.0.2'
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
+        self.assertEqual(resp.status_int, 204)
 
         self.test_auth.app = FakeApp(iter([('204 No Content', {}, '')]),
                                      sync_key='secret')
@@ -3844,7 +3845,7 @@ class TestAuth(unittest.TestCase):
                      'x-cluster-client-ip': '127.0.0.1'})
         req.remote_addr = '127.0.0.2'
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 204)
+        self.assertEqual(resp.status_int, 204)
 
     def _make_request(self, path, **kwargs):
         req = Request.blank(path, **kwargs)
@@ -3857,8 +3858,8 @@ class TestAuth(unittest.TestCase):
         req = self._make_request('/v1/AUTH_account',
                                  environ={'swift.authorize_override': True})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(resp.environ['swift.authorize'],
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(resp.environ['swift.authorize'],
                           self.test_auth.authorize)
 
     def test_override_asked_for_and_allowed(self):
@@ -3867,43 +3868,43 @@ class TestAuth(unittest.TestCase):
         req = self._make_request('/v1/AUTH_account',
                                  environ={'swift.authorize_override': True})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
+        self.assertEqual(resp.status_int, 404)
         self.assertTrue('swift.authorize' not in resp.environ)
 
     def test_override_default_allowed(self):
         req = self._make_request('/v1/AUTH_account',
                                  environ={'swift.authorize_override': True})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 404)
+        self.assertEqual(resp.status_int, 404)
         self.assertTrue('swift.authorize' not in resp.environ)
 
     def test_token_too_long(self):
         req = self._make_request('/v1/AUTH_account', headers={
             'x-auth-token': 'a' * MAX_TOKEN_LENGTH})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertNotEquals(resp.body, 'Token exceeds maximum length.')
+        self.assertEqual(resp.status_int, 401)
+        self.assertNotEqual(resp.body, 'Token exceeds maximum length.')
         req = self._make_request('/v1/AUTH_account', headers={
             'x-auth-token': 'a' * (MAX_TOKEN_LENGTH + 1)})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 400)
-        self.assertEquals(resp.body, 'Token exceeds maximum length.')
+        self.assertEqual(resp.status_int, 400)
+        self.assertEqual(resp.body, 'Token exceeds maximum length.')
 
     def test_crazy_authorization(self):
         req = self._make_request('/v1/AUTH_account', headers={
             'authorization': 'somebody elses header value'})
         resp = req.get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 401)
-        self.assertEquals(resp.environ['swift.authorize'],
+        self.assertEqual(resp.status_int, 401)
+        self.assertEqual(resp.environ['swift.authorize'],
                           self.test_auth.denied_response)
 
     def test_default_storage_policy(self):
         ath = auth.filter_factory({})(FakeApp())
-        self.assertEquals(ath.default_storage_policy, None)
+        self.assertEqual(ath.default_storage_policy, None)
 
         ath = \
             auth.filter_factory({'default_storage_policy': 'ssd'})(FakeApp())
-        self.assertEquals(ath.default_storage_policy, 'ssd')
+        self.assertEqual(ath.default_storage_policy, 'ssd')
 
 
 if __name__ == '__main__':
