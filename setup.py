@@ -63,7 +63,7 @@ setup(
     license='Apache License (2.0)',
     author='OpenStack, LLC.',
     author_email='swauth@brim.net',
-    url='https://github.com/gholt/swauth',
+    url='https://github.com/openstack/swauth',
     packages=find_packages(exclude=['test_swauth', 'bin']),
     test_suite='nose.collector',
     cmdclass=cmdclass,
