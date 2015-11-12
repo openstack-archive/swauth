@@ -14,8 +14,7 @@
 # Pablo Llopis 2011
 
 
-"""
-This module hosts available auth types for encoding and matching user keys.
+"""This module hosts available auth types for encoding and matching user keys.
 For adding a new auth type, simply write a class that satisfies the following
 conditions:
 
@@ -39,8 +38,7 @@ MAX_TOKEN_LENGTH = 5000
 
 
 class Plaintext(object):
-    """
-    Provides a particular auth type for encoding format for encoding and
+    """Provides a particular auth type for encoding format for encoding and
     matching user keys.
 
     This class must be all lowercase except for the first character, which
@@ -48,8 +46,7 @@ class Plaintext(object):
     the only ones that will be used by swauth.
     """
     def encode(self, key):
-        """
-        Encodes a user key into a particular format. The result of this method
+        """Encodes a user key into a particular format. The result of this method
         will be used by swauth for storing user credentials.
 
         :param key: User's secret key
@@ -58,8 +55,7 @@ class Plaintext(object):
         return "plaintext:%s" % key
 
     def match(self, key, creds):
-        """
-        Checks whether the user-provided key matches the user's credentials
+        """Checks whether the user-provided key matches the user's credentials
 
         :param key: User-supplied key
         :param creds: User's stored credentials
@@ -69,8 +65,7 @@ class Plaintext(object):
 
 
 class Sha1(object):
-    """
-    Provides a particular auth type for encoding format for encoding and
+    """Provides a particular auth type for encoding format for encoding and
     matching user keys.
 
     This class must be all lowercase except for the first character, which
@@ -79,8 +74,7 @@ class Sha1(object):
     """
 
     def encode_w_salt(self, salt, key):
-        """
-        Encodes a user key with salt into a particular format. The result of
+        """Encodes a user key with salt into a particular format. The result of
         this method will be used internally.
 
         :param salt: Salt for hashing
@@ -92,8 +86,7 @@ class Sha1(object):
         return "sha1:%s$%s" % (salt, enc_val)
 
     def encode(self, key):
-        """
-        Encodes a user key into a particular format. The result of this method
+        """Encodes a user key into a particular format. The result of this method
         will be used by swauth for storing user credentials.
 
         :param key: User's secret key
@@ -103,8 +96,7 @@ class Sha1(object):
         return self.encode_w_salt(salt, key)
 
     def match(self, key, creds):
-        """
-        Checks whether the user-provided key matches the user's credentials
+        """Checks whether the user-provided key matches the user's credentials
 
         :param key: User-supplied key
         :param creds: User's stored credentials
@@ -116,9 +108,9 @@ class Sha1(object):
 
         return self.encode_w_salt(salt, key) == creds
 
+
 class Sha512(object):
-    """
-    Provides a particular auth type for encoding format for encoding and
+    """Provides a particular auth type for encoding format for encoding and
     matching user keys.
 
     This class must be all lowercase except for the first character, which
@@ -127,8 +119,7 @@ class Sha512(object):
     """
 
     def encode_w_salt(self, salt, key):
-        """
-        Encodes a user key with salt into a particular format. The result of
+        """Encodes a user key with salt into a particular format. The result of
         this method will be used internal.
 
         :param salt: Salt for hashing
@@ -140,19 +131,17 @@ class Sha512(object):
         return "sha512:%s$%s" % (salt, enc_val)
 
     def encode(self, key):
-        """
-        Encodes a user key into a particular format. The result of this method
+        """Encodes a user key into a particular format. The result of this method
         will be used by swauth for storing user credentials.
 
         :param key: User's secret key
         :returns: A string representing user credentials
         """
-        salt = os.urandom(32).encode('base64').rstrip();
+        salt = os.urandom(32).encode('base64').rstrip()
         return self.encode_w_salt(salt, key)
 
     def match(self, key, creds):
-        """
-        Checks whether the user-provided key matches the user's credentials
+        """Checks whether the user-provided key matches the user's credentials
 
         :param key: User-supplied key
         :param creds: User's stored credentials

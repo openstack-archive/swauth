@@ -13,42 +13,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+from hashlib import sha1
+import hmac
+from httplib import HTTPConnection
+from httplib import HTTPSConnection
 try:
     import simplejson as json
 except ImportError:
     import json
-from httplib import HTTPConnection, HTTPSConnection
-from time import gmtime, strftime, time
+from time import gmtime
+from time import strftime
+from time import time
 from traceback import format_exc
-from urllib import quote, unquote
+from urllib import quote
+from urllib import unquote
 from uuid import uuid4
-from hashlib import md5, sha1
-import hmac
-import base64
 
 from eventlet.timeout import Timeout
 from eventlet import TimeoutError
-from swift.common.swob import HTTPAccepted, HTTPBadRequest, HTTPConflict, \
-    HTTPCreated, HTTPForbidden, HTTPMethodNotAllowed, HTTPMovedPermanently, \
-    HTTPNoContent, HTTPNotFound, HTTPServiceUnavailable, HTTPUnauthorized, \
-    Request, Response
+from swift.common.swob import HTTPAccepted
+from swift.common.swob import HTTPBadRequest
+from swift.common.swob import HTTPConflict
+from swift.common.swob import HTTPCreated
+from swift.common.swob import HTTPForbidden
+from swift.common.swob import HTTPMethodNotAllowed
+from swift.common.swob import HTTPMovedPermanently
+from swift.common.swob import HTTPNoContent
+from swift.common.swob import HTTPNotFound
+from swift.common.swob import HTTPUnauthorized
+from swift.common.swob import Request
+from swift.common.swob import Response
 
 from swift.common.bufferedhttp import http_connect_raw as http_connect
-from swift.common.middleware.acl import clean_acl, parse_acl, referrer_allowed
-from swift.common.utils import cache_from_env, get_logger, get_remote_client, \
-    split_path, TRUE_VALUES, urlparse
+from swift.common.middleware.acl import clean_acl
+from swift.common.middleware.acl import parse_acl
+from swift.common.middleware.acl import referrer_allowed
+from swift.common.utils import cache_from_env
+from swift.common.utils import get_logger
+from swift.common.utils import get_remote_client
+from swift.common.utils import split_path
+from swift.common.utils import TRUE_VALUES
+from swift.common.utils import urlparse
 import swift.common.wsgi
 
-from swauth import swift_version
 import swauth.authtypes
+from swauth import swift_version
 
 
 MEMCACHE_TIME = swift_version.newer_than('1.7.7-dev')
 
 
 class Swauth(object):
-    """
-    Scalable authentication and authorization system that uses Swift as its
+    """Scalable authentication and authorization system that uses Swift as its
     backing store.
 
     :param app: The next WSGI app in the pipeline
@@ -82,7 +99,8 @@ class Swauth(object):
                 raise ValueError(msg)
             self.swauth_remote_parsed = urlparse(self.swauth_remote)
             if self.swauth_remote_parsed.scheme not in ('http', 'https'):
-                msg = _('Cannot handle protocol scheme %s for url %s!') % \
+                msg = _('Cannot handle protocol scheme %(schema)s '
+                        'for url %(url)s!') % \
                    (self.swauth_remote_parsed.scheme, repr(self.swauth_remote))
                 try:
                     self.logger.critical(msg)
@@ -111,11 +129,11 @@ class Swauth(object):
             raise Exception('Invalid cluster format')
         self.dsc_parsed = urlparse(self.dsc_url)
         if self.dsc_parsed.scheme not in ('http', 'https'):
-            raise Exception('Cannot handle protocol scheme %s for url %s' %
+            raise ValueError('Cannot handle protocol scheme %s for url %s' %
                             (self.dsc_parsed.scheme, repr(self.dsc_url)))
         self.dsc_parsed2 = urlparse(self.dsc_url2)
         if self.dsc_parsed2.scheme not in ('http', 'https'):
-            raise Exception('Cannot handle protocol scheme %s for url %s' %
+            raise ValueError('Cannot handle protocol scheme %s for url %s' %
                             (self.dsc_parsed2.scheme, repr(self.dsc_url2)))
         self.super_admin_key = conf.get('super_admin_key')
         if not self.super_admin_key and not self.swauth_remote:
@@ -148,8 +166,7 @@ class Swauth(object):
 
     def make_pre_authed_request(self, env, method=None, path=None, body=None,
                                 headers=None):
-        """
-        Nearly the same as swift.common.wsgi.make_pre_authed_request
+        """Nearly the same as swift.common.wsgi.make_pre_authed_request
         except that this also always sets the 'swift.source' and user
         agent.
 
@@ -172,8 +189,7 @@ class Swauth(object):
         return subreq
 
     def __call__(self, env, start_response):
-        """
-        Accepts a standard WSGI application call, authenticating the request
+        """Accepts a standard WSGI application call, authenticating the request
         and installing callback hooks for authorization and ACL header
         validation. For an authenticated request, REMOTE_USER will be set to a
         comma separated list of the user's groups.
@@ -245,7 +261,7 @@ class Swauth(object):
                     version, rest = split_path(env.get('PATH_INFO', ''),
                                                1, 2, True)
                 except ValueError:
-                    version, rest = None, None
+                    rest = None
                 if rest and rest.startswith(self.reseller_prefix):
                     # Handle anonymous access to accounts I'm the definitive
                     # auth for.
@@ -263,8 +279,7 @@ class Swauth(object):
         return self.app(env, start_response)
 
     def get_groups(self, env, token):
-        """
-        Get groups for the given token.
+        """Get groups for the given token.
 
         :param env: The current WSGI environment dictionary.
         :param token: Token to validate and return a group string for.
@@ -286,14 +301,15 @@ class Swauth(object):
 
         if env.get('HTTP_AUTHORIZATION'):
             if self.swauth_remote:
-                # TODO: Support S3-style authorization with swauth_remote mode
+                # TODO(gholt): Support S3-style authorization with
+                # swauth_remote mode
                 self.logger.warn('S3-style authorization not supported yet '
                                  'with swauth_remote mode.')
                 return None
             try:
                 account = env['HTTP_AUTHORIZATION'].split(' ')[1]
                 account, user, sign = account.split(':')
-            except Exception, err:
+            except Exception:
                 self.logger.debug(
                     'Swauth cannot parse Authorization header value %r' %
                     env['HTTP_AUTHORIZATION'])
@@ -387,8 +403,7 @@ class Swauth(object):
         return groups
 
     def authorize(self, req):
-        """
-        Returns None if the request is authorized to continue or a standard
+        """Returns None if the request is authorized to continue or a standard
         WSGI response callable if not.
         """
         try:
@@ -429,8 +444,7 @@ class Swauth(object):
         return self.denied_response(req)
 
     def denied_response(self, req):
-        """
-        Returns a standard WSGI response callable with the status of 403 or 401
+        """Returns a standard WSGI response callable with the status of 403 or 401
         depending on whether the REMOTE_USER is set or not.
         """
         if not hasattr(req, 'credentials_valid'):
@@ -441,8 +455,7 @@ class Swauth(object):
             return HTTPUnauthorized(request=req)
 
     def handle(self, env, start_response):
-        """
-        WSGI entry point for auth requests (ones that match the
+        """WSGI entry point for auth requests (ones that match the
         self.auth_prefix).
         Wraps env in swob.Request object and passes it down.
 
@@ -471,14 +484,13 @@ class Swauth(object):
                 self.posthooklogger(env, req)
                 return response
         except (Exception, TimeoutError):
-            print "EXCEPTION IN handle: %s: %s" % (format_exc(), env)
+            print("EXCEPTION IN handle: %s: %s" % (format_exc(), env))
             start_response('500 Server Error',
                            [('Content-Type', 'text/plain')])
             return ['Internal server error.\n']
 
     def handle_request(self, req):
-        """
-        Entry point for auth requests (ones that match the self.auth_prefix).
+        """Entry point for auth requests (ones that match the self.auth_prefix).
         Should return a WSGI-style callable (such as swob.Response).
 
         :param req: swob.Request object
@@ -541,8 +553,7 @@ class Swauth(object):
         return req.response
 
     def handle_prep(self, req):
-        """
-        Handles the POST v2/.prep call for preparing the backing store Swift
+        """Handles the POST v2/.prep call for preparing the backing store Swift
         cluster for use with the auth subsystem. Can only be called by
         .super_admin.
 
@@ -573,8 +584,7 @@ class Swauth(object):
         return HTTPNoContent(request=req)
 
     def handle_get_reseller(self, req):
-        """
-        Handles the GET v2 call for getting general reseller information
+        """Handles the GET v2 call for getting general reseller information
         (currently just a list of accounts). Can only be called by a
         .reseller_admin.
 
@@ -611,8 +621,7 @@ class Swauth(object):
         return Response(body=json.dumps({'accounts': listing}))
 
     def handle_get_account(self, req):
-        """
-        Handles the GET v2/<account> call for getting account information.
+        """Handles the GET v2/<account> call for getting account information.
         Can only be called by an account .admin.
 
         On success, a JSON dictionary will be returned containing the keys
@@ -669,8 +678,7 @@ class Swauth(object):
                                     'services': services, 'users': listing}))
 
     def handle_set_services(self, req):
-        """
-        Handles the POST v2/<account>/.services call for setting services
+        """Handles the POST v2/<account>/.services call for setting services
         information. Can only be called by a reseller .admin.
 
         In the :func:`handle_get_account` (GET v2/<account>) call, a section of
@@ -712,7 +720,7 @@ class Swauth(object):
             return HTTPBadRequest(request=req)
         try:
             new_services = json.loads(req.body)
-        except ValueError, err:
+        except ValueError as err:
             return HTTPBadRequest(body=str(err))
         # Get the current services information
         path = quote('/v1/%s/%s/.services' % (self.auth_account, account))
@@ -739,8 +747,7 @@ class Swauth(object):
         return Response(request=req, body=services)
 
     def handle_put_account(self, req):
-        """
-        Handles the PUT v2/<account> call for adding an account to the auth
+        """Handles the PUT v2/<account> call for adding an account to the auth
         system. Can only be called by a .reseller_admin.
 
         By default, a newly created UUID4 will be used with the reseller prefix
@@ -830,8 +837,7 @@ class Swauth(object):
         return HTTPCreated(request=req)
 
     def handle_delete_account(self, req):
-        """
-        Handles the DELETE v2/<account> call for removing an account from the
+        """Handles the DELETE v2/<account> call for removing an account from the
         auth system. Can only be called by a .reseller_admin.
 
         :param req: The swob.Request to process.
@@ -919,8 +925,7 @@ class Swauth(object):
         return HTTPNoContent(request=req)
 
     def handle_get_user(self, req):
-        """
-        Handles the GET v2/<account>/<user> call for getting user information.
+        """Handles the GET v2/<account>/<user> call for getting user information.
         Can only be called by an account .admin.
 
         On success, a JSON dict will be returned as described::
@@ -970,8 +975,8 @@ class Swauth(object):
         # account and create a list of all groups that the users
         # are part of
         if user == '.groups':
-            # TODO: This could be very slow for accounts with a really large
-            # number of users. Speed could be improved by concurrently
+            # TODO(gholt): This could be very slow for accounts with a really
+            # large number of users. Speed could be improved by concurrently
             # requesting user group information. Then again, I don't *know*
             # it's slow for `normal` use cases, so testing should be done.
             groups = set()
@@ -1019,8 +1024,7 @@ class Swauth(object):
         return Response(body=body)
 
     def handle_put_user(self, req):
-        """
-        Handles the PUT v2/<account>/<user> call for adding a user to an
+        """Handles the PUT v2/<account>/<user> call for adding a user to an
         account.
 
         X-Auth-User-Key represents the user's key (url encoded),
@@ -1095,8 +1099,7 @@ class Swauth(object):
         return HTTPCreated(request=req)
 
     def handle_delete_user(self, req):
-        """
-        Handles the DELETE v2/<account>/<user> call for deleting a user from an
+        """Handles the DELETE v2/<account>/<user> call for deleting a user from an
         account.
 
         Can only be called by an account .admin.
@@ -1151,8 +1154,7 @@ class Swauth(object):
         return HTTPNoContent(request=req)
 
     def is_user_reseller_admin(self, req, account, user):
-        """
-        Returns True if the user is a .reseller_admin.
+        """Returns True if the user is a .reseller_admin.
 
         :param account: account user is part of
         :param user: the user
@@ -1171,8 +1173,7 @@ class Swauth(object):
         return '.reseller_admin' in (g['name'] for g in user_detail['groups'])
 
     def handle_get_token(self, req):
-        """
-        Handles the various `request for token and service end point(s)` calls.
+        """Handles the various `request for token and service end point(s)` calls.
         There are various formats to support the various auth servers in the
         past. Examples::
 
@@ -1308,7 +1309,8 @@ class Swauth(object):
                         req.environ, 'DELETE', path).get_response(self.app)
                     memcache_client = cache_from_env(req.environ)
                     if memcache_client:
-                        memcache_key = '%s/auth/%s' % (self.reseller_prefix, candidate_token)
+                        memcache_key = '%s/auth/%s' % (self.reseller_prefix,
+                                                       candidate_token)
                         memcache_client.delete(memcache_key)
         # Create a new token if one didn't exist
         if not token:
@@ -1367,8 +1369,7 @@ class Swauth(object):
                      'x-storage-url': url})
 
     def handle_validate_token(self, req):
-        """
-        Handles the GET v2/.token/<token> call for validating a token, usually
+        """Handles the GET v2/.token/<token> call for validating a token, usually
         called by a service like Swift.
 
         On a successful validation, X-Auth-TTL will be set for how much longer
@@ -1419,8 +1420,7 @@ class Swauth(object):
                                       'X-Auth-Groups': groups})
 
     def get_conn(self, urlparsed=None):
-        """
-        Returns an HTTPConnection based on the urlparse result given or the
+        """Returns an HTTPConnection based on the urlparse result given or the
         default Swift cluster (internal url) urlparse result.
 
         :param urlparsed: The result from urlparse.urlparse or None to use the
@@ -1434,8 +1434,7 @@ class Swauth(object):
             return HTTPSConnection(urlparsed.netloc)
 
     def get_itoken(self, env):
-        """
-        Returns the current internal token to use for the auth system's own
+        """Returns the current internal token to use for the auth system's own
         actions with other services. Each process will create its own
         itoken and the token will be deleted and recreated based on the
         token_life configuration value. The itoken information is stored in
@@ -1468,8 +1467,7 @@ class Swauth(object):
         return self.itoken
 
     def get_admin_detail(self, req):
-        """
-        Returns the dict for the user specified as the admin in the request
+        """Returns the dict for the user specified as the admin in the request
         with the addition of an `account` key set to the admin user's account.
 
         :param req: The swob request to retrieve X-Auth-Admin-User and
@@ -1489,8 +1487,7 @@ class Swauth(object):
         return admin_detail
 
     def get_user_detail(self, req, account, user):
-        """
-        Returns the response body of a GET request for the specified user
+        """Returns the response body of a GET request for the specified user
         The body is in JSON format and contains all user information.
 
         :param req: The swob request
@@ -1511,8 +1508,7 @@ class Swauth(object):
         return resp.body
 
     def credentials_match(self, user_detail, key):
-        """
-        Returns True if the key is valid for the user_detail.
+        """Returns True if the key is valid for the user_detail.
         It will use self.auth_encoder to check for a key match.
 
         :param user_detail: The dict for the user.
@@ -1523,8 +1519,8 @@ class Swauth(object):
           key, user_detail.get('auth'))
 
     def is_user_changing_own_key(self, req, user):
-        """
-        Check if the user is changing his own key.
+        """Check if the user is changing his own key.
+
         :param req: The swob.Request to check. This contains x-auth-admin-user
                     and x-auth-admin-key headers which are credentials of the
                     user sending the request.
@@ -1553,8 +1549,7 @@ class Swauth(object):
                                    req.headers.get('x-auth-admin-key'))
 
     def is_super_admin(self, req):
-        """
-        Returns True if the admin specified in the request represents the
+        """Returns True if the admin specified in the request represents the
         .super_admin.
 
         :param req: The swob.Request to check.
@@ -1565,8 +1560,7 @@ class Swauth(object):
                req.headers.get('x-auth-admin-key') == self.super_admin_key
 
     def is_reseller_admin(self, req, admin_detail=None):
-        """
-        Returns True if the admin specified in the request represents a
+        """Returns True if the admin specified in the request represents a
         .reseller_admin.
 
         :param req: The swob.Request to check.
@@ -1587,8 +1581,7 @@ class Swauth(object):
         return '.reseller_admin' in (g['name'] for g in admin_detail['groups'])
 
     def is_account_admin(self, req, account):
-        """
-        Returns True if the admin specified in the request represents a .admin
+        """Returns True if the admin specified in the request represents a .admin
         for the account specified.
 
         :param req: The swob.Request to check.

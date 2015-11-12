@@ -13,10 +13,9 @@
 #
 # Pablo Llopis 2011
 
-import unittest
 import mock
-from contextlib import contextmanager
 from swauth import authtypes
+import unittest
 
 
 class TestPlaintext(unittest.TestCase):
@@ -26,17 +25,17 @@ class TestPlaintext(unittest.TestCase):
 
     def test_plaintext_encode(self):
         enc_key = self.auth_encoder.encode('keystring')
-        self.assertEquals('plaintext:keystring', enc_key)
+        self.assertEqual('plaintext:keystring', enc_key)
 
     def test_plaintext_valid_match(self):
         creds = 'plaintext:keystring'
         match = self.auth_encoder.match('keystring', creds)
-        self.assertEquals(match, True)
+        self.assertEqual(match, True)
 
     def test_plaintext_invalid_match(self):
         creds = 'plaintext:other-keystring'
         match = self.auth_encoder.match('keystring', creds)
-        self.assertEquals(match, False)
+        self.assertEqual(match, False)
 
 
 class TestSha1(unittest.TestCase):
@@ -48,20 +47,21 @@ class TestSha1(unittest.TestCase):
 
     @mock.patch('swauth.authtypes.os')
     def test_sha1_encode(self, os):
-        os.urandom.return_value.encode.return_value.rstrip.return_value = 'salt'
+        os.urandom.return_value.encode.return_value.rstrip \
+            .return_value = 'salt'
         enc_key = self.auth_encoder.encode('keystring')
-        self.assertEquals('sha1:salt$d50dc700c296e23ce5b41f7431a0e01f69010f06',
+        self.assertEqual('sha1:salt$d50dc700c296e23ce5b41f7431a0e01f69010f06',
                           enc_key)
 
     def test_sha1_valid_match(self):
         creds = 'sha1:salt$d50dc700c296e23ce5b41f7431a0e01f69010f06'
         match = self.auth_encoder.match('keystring', creds)
-        self.assertEquals(match, True)
+        self.assertEqual(match, True)
 
     def test_sha1_invalid_match(self):
         creds = 'sha1:salt$deadbabedeadbabedeadbabec0ffeebadc0ffeee'
         match = self.auth_encoder.match('keystring', creds)
-        self.assertEquals(match, False)
+        self.assertEqual(match, False)
 
 
 if __name__ == '__main__':
