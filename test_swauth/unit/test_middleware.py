@@ -1625,6 +1625,10 @@ class TestAuth(unittest.TestCase):
         self.assertEquals(conn.calls, 1)
 
     def test_put_account_success_preexist_and_completed(self):
+        conn = FakeConn(iter([
+            # PUT of storage account itself
+            ('201 Created', {}, '')]))
+        self.test_auth.get_conn = lambda: conn
         self.test_auth.app = FakeApp(iter([
             # Initial HEAD of account container to check for pre-existence
             # We're going to show it as existing this time, and with an
@@ -1710,7 +1714,27 @@ class TestAuth(unittest.TestCase):
             ).get_response(self.test_auth)
         self.assertEquals(resp.status_int, 400)
 
+    def test_put_account_fail_on_storage_account_put(self):
+        conn = FakeConn(iter([
+            # PUT of storage account itself
+            ('503 Service Unavailable', {}, '')]))
+        self.test_auth.get_conn = lambda: conn
+        self.test_auth.app = FakeApp(iter([
+        ]))
+        resp = Request.blank('/auth/v2/act',
+            environ={'REQUEST_METHOD': 'PUT', 'swift.cache': FakeMemcache()},
+            headers={'X-Auth-Admin-User': '.super_admin',
+                     'X-Auth-Admin-Key': 'supertest'}
+            ).get_response(self.test_auth)
+        self.assertEquals(resp.status_int, 500)
+        self.assertEquals(conn.calls, 1)
+        self.assertEquals(self.test_auth.app.calls, 0)
+
     def test_put_account_fail_on_initial_account_head(self):
+        conn = FakeConn(iter([
+            # PUT of storage account itself
+            ('201 Created', {}, '')]))
+        self.test_auth.get_conn = lambda: conn
         self.test_auth.app = FakeApp(iter([
             # Initial HEAD of account container to check for pre-existence
             ('503 Service Unavailable', {}, '')]))
@@ -1723,36 +1747,21 @@ class TestAuth(unittest.TestCase):
         self.assertEquals(self.test_auth.app.calls, 1)
 
     def test_put_account_fail_on_account_marker_put(self):
-        self.test_auth.app = FakeApp(iter([
-            # Initial HEAD of account container to check for pre-existence
-            ('404 Not Found', {}, ''),
-            # PUT of account container
-            ('503 Service Unavailable', {}, '')]))
-        resp = Request.blank('/auth/v2/act',
-            environ={'REQUEST_METHOD': 'PUT', 'swift.cache': FakeMemcache()},
-            headers={'X-Auth-Admin-User': '.super_admin',
-                     'X-Auth-Admin-Key': 'supertest'}
-            ).get_response(self.test_auth)
-        self.assertEquals(resp.status_int, 500)
-        self.assertEquals(self.test_auth.app.calls, 2)
-
-    def test_put_account_fail_on_storage_account_put(self):
         conn = FakeConn(iter([
             # PUT of storage account itself
-            ('503 Service Unavailable', {}, '')]))
+            ('201 Created', {}, '')]))
         self.test_auth.get_conn = lambda: conn
         self.test_auth.app = FakeApp(iter([
             # Initial HEAD of account container to check for pre-existence
             ('404 Not Found', {}, ''),
             # PUT of account container
-            ('204 No Content', {}, '')]))
+            ('503 Service Unavailable', {}, '')]))
         resp = Request.blank('/auth/v2/act',
             environ={'REQUEST_METHOD': 'PUT', 'swift.cache': FakeMemcache()},
             headers={'X-Auth-Admin-User': '.super_admin',
                      'X-Auth-Admin-Key': 'supertest'}
             ).get_response(self.test_auth)
         self.assertEquals(resp.status_int, 500)
-        self.assertEquals(conn.calls, 1)
         self.assertEquals(self.test_auth.app.calls, 2)
 
     def test_put_account_fail_on_account_id_mapping(self):
