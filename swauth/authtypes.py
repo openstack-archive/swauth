@@ -116,6 +116,7 @@ class Sha1(object):
 
         return self.encode_w_salt(salt, key) == creds
 
+
 class Sha512(object):
     """
     Provides a particular auth type for encoding format for encoding and
@@ -147,7 +148,7 @@ class Sha512(object):
         :param key: User's secret key
         :returns: A string representing user credentials
         """
-        salt = os.urandom(32).encode('base64').rstrip();
+        salt = os.urandom(32).encode('base64').rstrip()
         return self.encode_w_salt(salt, key)
 
     def match(self, key, creds):

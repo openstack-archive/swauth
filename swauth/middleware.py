@@ -22,7 +22,7 @@ from time import gmtime, strftime, time
 from traceback import format_exc
 from urllib import quote, unquote
 from uuid import uuid4
-from hashlib import md5, sha1
+from hashlib import sha1
 import hmac
 import base64
 
@@ -30,8 +30,7 @@ from eventlet.timeout import Timeout
 from eventlet import TimeoutError
 from swift.common.swob import HTTPAccepted, HTTPBadRequest, HTTPConflict, \
     HTTPCreated, HTTPForbidden, HTTPMethodNotAllowed, HTTPMovedPermanently, \
-    HTTPNoContent, HTTPNotFound, HTTPServiceUnavailable, HTTPUnauthorized, \
-    Request, Response
+    HTTPNoContent, HTTPNotFound, HTTPUnauthorized, Request, Response
 
 from swift.common.bufferedhttp import http_connect_raw as http_connect
 from swift.common.middleware.acl import clean_acl, parse_acl, referrer_allowed
@@ -245,7 +244,7 @@ class Swauth(object):
                     version, rest = split_path(env.get('PATH_INFO', ''),
                                                1, 2, True)
                 except ValueError:
-                    version, rest = None, None
+                    rest = None
                 if rest and rest.startswith(self.reseller_prefix):
                     # Handle anonymous access to accounts I'm the definitive
                     # auth for.
@@ -293,7 +292,7 @@ class Swauth(object):
             try:
                 account = env['HTTP_AUTHORIZATION'].split(' ')[1]
                 account, user, sign = account.split(':')
-            except Exception, err:
+            except Exception:
                 self.logger.debug(
                     'Swauth cannot parse Authorization header value %r' %
                     env['HTTP_AUTHORIZATION'])
@@ -471,7 +470,7 @@ class Swauth(object):
                 self.posthooklogger(env, req)
                 return response
         except (Exception, TimeoutError):
-            print "EXCEPTION IN handle: %s: %s" % (format_exc(), env)
+            print("EXCEPTION IN handle: %s: %s" % (format_exc(), env))
             start_response('500 Server Error',
                            [('Content-Type', 'text/plain')])
             return ['Internal server error.\n']
@@ -712,7 +711,7 @@ class Swauth(object):
             return HTTPBadRequest(request=req)
         try:
             new_services = json.loads(req.body)
-        except ValueError, err:
+        except ValueError as err:
             return HTTPBadRequest(body=str(err))
         # Get the current services information
         path = quote('/v1/%s/%s/.services' % (self.auth_account, account))
