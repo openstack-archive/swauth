@@ -99,7 +99,7 @@ class Sha1(object):
         :param key: User's secret key
         :returns: A string representing user credentials
         """
-        salt = os.urandom(32).encode('base64').rstrip();
+        salt = os.urandom(32).encode('base64').rstrip()
         return self.encode_w_salt(salt, key)
 
     def match(self, key, creds):

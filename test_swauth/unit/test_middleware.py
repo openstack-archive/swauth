@@ -81,6 +81,7 @@ class FakeApp(object):
             if resp:
                 return resp(env, start_response)
         status, headers, body = self.status_headers_body_iter.next()
+        print("new %s"%status)
         return Response(status=status, headers=headers,
                         body=body)(env, start_response)
 
@@ -98,6 +99,7 @@ class FakeConn(object):
         self.request_path = path
         self.status, self.headers, self.body = \
             self.status_headers_body_iter.next()
+        print("CONN %s"%self.status)
         self.status, self.reason = self.status.split(' ', 1)
         self.status = int(self.status)
 
@@ -1625,6 +1627,10 @@ class TestAuth(unittest.TestCase):
         self.assertEquals(conn.calls, 1)
 
     def test_put_account_success_preexist_and_completed(self):
+        conn = FakeConn(iter([
+            # PUT of storage account itself
+            ('200 Ok', {}, '')]))
+        self.test_auth.get_conn = lambda: conn
         self.test_auth.app = FakeApp(iter([
             # Initial HEAD of account container to check for pre-existence
             # We're going to show it as existing this time, and with an
@@ -1711,6 +1717,10 @@ class TestAuth(unittest.TestCase):
         self.assertEquals(resp.status_int, 400)
 
     def test_put_account_fail_on_initial_account_head(self):
+        conn = FakeConn(iter([
+            # PUT of storage account itself
+            ('200 Ok', {}, '')]))
+        self.test_auth.get_conn = lambda: conn
         self.test_auth.app = FakeApp(iter([
             # Initial HEAD of account container to check for pre-existence
             ('503 Service Unavailable', {}, '')]))
@@ -1723,6 +1733,10 @@ class TestAuth(unittest.TestCase):
         self.assertEquals(self.test_auth.app.calls, 1)
 
     def test_put_account_fail_on_account_marker_put(self):
+        conn = FakeConn(iter([
+            # PUT of storage account itself
+            ('200 Ok', {}, '')]))
+        self.test_auth.get_conn = lambda: conn
         self.test_auth.app = FakeApp(iter([
             # Initial HEAD of account container to check for pre-existence
             ('404 Not Found', {}, ''),
@@ -1738,6 +1752,8 @@ class TestAuth(unittest.TestCase):
 
     def test_put_account_fail_on_storage_account_put(self):
         conn = FakeConn(iter([
+            # Initial HEAD of account container to check for pre-existence
+            ('201 Ok', {}, ''),
             # PUT of storage account itself
             ('503 Service Unavailable', {}, '')]))
         self.test_auth.get_conn = lambda: conn

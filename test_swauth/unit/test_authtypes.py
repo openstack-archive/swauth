@@ -14,6 +14,7 @@
 # Pablo Llopis 2011
 
 import unittest
+import mock
 from contextlib import contextmanager
 from swauth import authtypes
 
@@ -42,9 +43,12 @@ class TestSha1(unittest.TestCase):
 
     def setUp(self):
         self.auth_encoder = authtypes.Sha1()
+        print(authtypes.os)
         self.auth_encoder.salt = 'salt'
 
-    def test_sha1_encode(self):
+    @mock.patch('swauth.authtypes.os')
+    def test_sha1_encode(self, os):
+        os.urandom.return_value.encode.return_value.rstrip.return_value = 'salt'
         enc_key = self.auth_encoder.encode('keystring')
         self.assertEquals('sha1:salt$d50dc700c296e23ce5b41f7431a0e01f69010f06',
                           enc_key)
