@@ -179,7 +179,7 @@ class TestAuth(unittest.TestCase):
 
     def test_default_swift_cluster_init(self):
         app = FakeApp()
-        self.assertRaises(Exception, auth.filter_factory({
+        self.assertRaises(ValueError, auth.filter_factory({
             'super_admin_key': 'supertest',
             'default_swift_cluster': 'local#badscheme://host/path'}), app)
         ath = auth.filter_factory({'super_admin_key': 'supertest'})(app)

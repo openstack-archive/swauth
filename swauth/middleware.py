@@ -126,15 +126,15 @@ class Swauth(object):
         elif len(cluster_parts) == 2:
             self.dsc_url = self.dsc_url2 = cluster_parts[1].rstrip('/')
         else:
-            raise Exception('Invalid cluster format')
+            raise ValueError('Invalid cluster format')
         self.dsc_parsed = urlparse(self.dsc_url)
         if self.dsc_parsed.scheme not in ('http', 'https'):
-            raise Exception('Cannot handle protocol scheme %s for url %s' %
-                            (self.dsc_parsed.scheme, repr(self.dsc_url)))
+            raise ValueError('Cannot handle protocol scheme %s for url %s' %
+                             (self.dsc_parsed.scheme, repr(self.dsc_url)))
         self.dsc_parsed2 = urlparse(self.dsc_url2)
         if self.dsc_parsed2.scheme not in ('http', 'https'):
-            raise Exception('Cannot handle protocol scheme %s for url %s' %
-                            (self.dsc_parsed2.scheme, repr(self.dsc_url2)))
+            raise ValueError('Cannot handle protocol scheme %s for url %s' %
+                             (self.dsc_parsed2.scheme, repr(self.dsc_url2)))
         self.super_admin_key = conf.get('super_admin_key')
         if not self.super_admin_key and not self.swauth_remote:
             msg = _('No super_admin_key set in conf file; Swauth '
@@ -156,7 +156,7 @@ class Swauth(object):
         self.auth_type = conf.get('auth_type', 'Plaintext').title()
         self.auth_encoder = getattr(swauth.authtypes, self.auth_type, None)
         if self.auth_encoder is None:
-            raise Exception('Invalid auth_type in config file: %s'
+            raise ValueError('Invalid auth_type in config file: %s'
                              % self.auth_type)
         self.allow_overrides = \
             conf.get('allow_overrides', 't').lower() in TRUE_VALUES
