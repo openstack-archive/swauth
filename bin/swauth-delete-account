@@ -46,8 +46,8 @@ if __name__ == '__main__':
     account = args[0]
     parsed = urlparse(options.admin_url)
     if parsed.scheme not in ('http', 'https'):
-        raise Exception('Cannot handle protocol scheme %s for url %s' %
-                        (parsed.scheme, repr(options.admin_url)))
+        raise ValueError('Cannot handle protocol scheme %s for url %s' %
+                         (parsed.scheme, repr(options.admin_url)))
     parsed_path = parsed.path
     if not parsed_path:
         parsed_path = '/'
