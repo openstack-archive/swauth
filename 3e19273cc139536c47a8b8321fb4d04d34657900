@@ -1,0 +1,8 @@
+Verified+2: Jenkins
+Workflow+1: Ondřej Nový <novy@ondrej.org>
+Code-Review+2: Peter Lisák <peter.lisak@firma.seznam.cz>
+Submitted-by: Jenkins
+Submitted-at: Wed, 18 Nov 2015 10:41:19 +0000
+Reviewed-on: https://review.openstack.org/245594
+Project: openstack/swauth
+Branch: refs/heads/master
