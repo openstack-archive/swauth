@@ -17,8 +17,8 @@
 from getpass import getpass
 import gettext
 from optparse import OptionParser
-from os.path import basename
-from sys import argv, exit
+from sys import argv
+from sys import exit
 
 from swift.common.bufferedhttp import http_connect_raw as http_connect
 from swift.common.utils import urlparse

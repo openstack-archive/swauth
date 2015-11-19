@@ -14,19 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import datetime
+from datetime import timedelta
 try:
     import simplejson as json
 except ImportError:
     import json
 from getpass import getpass
 import gettext
-import re
-from datetime import datetime, timedelta
 from optparse import OptionParser
-from sys import argv, exit
-from time import sleep, time
+import re
+from sys import argv
+from sys import exit
+from time import sleep
+from time import time
 
-from swiftclient.client import Connection, ClientException
+from swiftclient.client import ClientException
+from swiftclient.client import Connection
 
 if __name__ == '__main__':
     gettext.install('swauth', unicode=1)
@@ -86,12 +90,12 @@ if __name__ == '__main__':
                     token = headers['x-object-meta-auth-token']
                     container = '.token_%s' % token[-1]
                     if options.verbose:
-                        print('%s/%s purge account %r; deleting' % \
+                        print('%s/%s purge account %r; deleting' %
                               (container, token, options.purge_account))
                     print('DELETE %s/%s' % (container, token))
                     try:
                         conn.delete_object(container, token)
-                    except ClientException, err:
+                    except ClientException as err:
                         if err.http_status != 404:
                             raise
                 continue
@@ -106,7 +110,7 @@ if __name__ == '__main__':
                 print('GET %s?marker=%s' % (container, marker))
             try:
                 objs = conn.get_container(container, marker=marker)[1]
-            except ClientException, e:
+            except ClientException as e:
                 if e.http_status == 404:
                     exit('Container %s not found. swauth-prep needs to be '
                         'rerun' % (container))
@@ -122,12 +126,12 @@ if __name__ == '__main__':
             for obj in objs:
                 if options.purge_all:
                     if options.verbose:
-                        print('%s/%s purge all; deleting' % \
+                        print('%s/%s purge all; deleting' %
                               (container, obj['name']))
                     print('DELETE %s/%s' % (container, obj['name']))
                     try:
                         conn.delete_object(container, obj['name'])
-                    except ClientException, err:
+                    except ClientException as err:
                         if err.http_status != 404:
                             raise
                     continue
@@ -136,7 +140,7 @@ if __name__ == '__main__':
                 ago = datetime.utcnow() - last_modified
                 if ago > options.token_life:
                     if options.verbose:
-                        print('%s/%s last modified %ss ago; investigating' % \
+                        print('%s/%s last modified %ss ago; investigating' %
                               (container, obj['name'],
                                ago.days * 86400 + ago.seconds))
                         print('GET %s/%s' % (container, obj['name']))
@@ -144,23 +148,23 @@ if __name__ == '__main__':
                     detail = json.loads(detail)
                     if detail['expires'] < time():
                         if options.verbose:
-                            print('%s/%s expired %ds ago; deleting' % \
+                            print('%s/%s expired %ds ago; deleting' %
                                   (container, obj['name'],
                                    time() - detail['expires']))
                         print('DELETE %s/%s' % (container, obj['name']))
                         try:
                             conn.delete_object(container, obj['name'])
-                        except ClientException, e:
+                        except ClientException as e:
                             if e.http_status != 404:
-                                print('DELETE of %s/%s failed with status ' \
+                                print('DELETE of %s/%s failed with status '
                                     'code %d' % (container, obj['name'],
                                     e.http_status))
                     elif options.verbose:
-                        print("%s/%s won't expire for %ds; skipping" % \
+                        print("%s/%s won't expire for %ds; skipping" %
                               (container, obj['name'],
                                detail['expires'] - time()))
                 elif options.verbose:
-                    print('%s/%s last modified %ss ago; skipping' % \
+                    print('%s/%s last modified %ss ago; skipping' %
                           (container, obj['name'],
                            ago.days * 86400 + ago.seconds))
                 sleep(options.sleep)
