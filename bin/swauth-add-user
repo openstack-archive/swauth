@@ -85,7 +85,7 @@ if __name__ == '__main__':
                                 ssl=(parsed.scheme == 'https'))
             resp = conn.getresponse()
             if resp.status // 100 != 2:
-                print 'Account creation failed: %s %s' % (resp.status, resp.reason)
+                print('Account creation failed: %s %s' % (resp.status, resp.reason))
     # Add the user
     path = '%sv2/%s/%s' % (parsed_path, account, user)
     headers = {'X-Auth-Admin-User': options.admin_user,

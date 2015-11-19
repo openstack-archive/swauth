@@ -84,6 +84,6 @@ If the [user] is '.groups', the active groups for the account will be listed.
     if options.plain_text:
         info = json.loads(body)
         for group in info[['accounts', 'users', 'groups'][len(args)]]:
-            print group['name']
+            print(group['name'])
     else:
-        print body
+        print(body)
