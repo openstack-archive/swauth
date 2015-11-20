@@ -70,25 +70,25 @@ if __name__ == '__main__':
         marker = None
         while True:
             if options.verbose:
-                print 'GET %s?marker=%s' % (options.purge_account, marker)
+                print('GET %s?marker=%s' % (options.purge_account, marker))
             objs = conn.get_container(options.purge_account, marker=marker)[1]
             if objs:
                 marker = objs[-1]['name']
             else:
                 if options.verbose:
-                    print 'No more objects in %s' % options.purge_account
+                    print('No more objects in %s' % options.purge_account)
                 break
             for obj in objs:
                 if options.verbose:
-                    print 'HEAD %s/%s' % (options.purge_account, obj['name'])
+                    print('HEAD %s/%s' % (options.purge_account, obj['name']))
                 headers = conn.head_object(options.purge_account, obj['name'])
                 if 'x-object-meta-auth-token' in headers:
                     token = headers['x-object-meta-auth-token']
                     container = '.token_%s' % token[-1]
                     if options.verbose:
-                        print '%s/%s purge account %r; deleting' % \
-                              (container, token, options.purge_account)
-                    print 'DELETE %s/%s' % (container, token)
+                        print('%s/%s purge account %r; deleting' % \
+                              (container, token, options.purge_account))
+                    print('DELETE %s/%s' % (container, token))
                     try:
                         conn.delete_object(container, token)
                     except ClientException, err:
@@ -96,14 +96,14 @@ if __name__ == '__main__':
                             raise
                 continue
         if options.verbose:
-            print 'Done.'
+            print('Done.')
         exit(0)
     for x in xrange(16):
         container = '.token_%x' % x
         marker = None
         while True:
             if options.verbose:
-                print 'GET %s?marker=%s' % (container, marker)
+                print('GET %s?marker=%s' % (container, marker))
             try:
                 objs = conn.get_container(container, marker=marker)[1]
             except ClientException, e:
@@ -117,14 +117,14 @@ if __name__ == '__main__':
                 marker = objs[-1]['name']
             else:
                 if options.verbose:
-                    print 'No more objects in %s' % container
+                    print('No more objects in %s' % container)
                 break
             for obj in objs:
                 if options.purge_all:
                     if options.verbose:
-                        print '%s/%s purge all; deleting' % \
-                              (container, obj['name'])
-                    print 'DELETE %s/%s' % (container, obj['name'])
+                        print('%s/%s purge all; deleting' % \
+                              (container, obj['name']))
+                    print('DELETE %s/%s' % (container, obj['name']))
                     try:
                         conn.delete_object(container, obj['name'])
                     except ClientException, err:
@@ -136,33 +136,33 @@ if __name__ == '__main__':
                 ago = datetime.utcnow() - last_modified
                 if ago > options.token_life:
                     if options.verbose:
-                        print '%s/%s last modified %ss ago; investigating' % \
+                        print('%s/%s last modified %ss ago; investigating' % \
                               (container, obj['name'],
-                               ago.days * 86400 + ago.seconds)
-                        print 'GET %s/%s' % (container, obj['name'])
+                               ago.days * 86400 + ago.seconds))
+                        print('GET %s/%s' % (container, obj['name']))
                     detail = conn.get_object(container, obj['name'])[1]
                     detail = json.loads(detail)
                     if detail['expires'] < time():
                         if options.verbose:
-                            print '%s/%s expired %ds ago; deleting' % \
+                            print('%s/%s expired %ds ago; deleting' % \
                                   (container, obj['name'],
-                                   time() - detail['expires'])
-                        print 'DELETE %s/%s' % (container, obj['name'])
+                                   time() - detail['expires']))
+                        print('DELETE %s/%s' % (container, obj['name']))
                         try:
                             conn.delete_object(container, obj['name'])
                         except ClientException, e:
                             if e.http_status != 404:
-                                print 'DELETE of %s/%s failed with status ' \
+                                print('DELETE of %s/%s failed with status ' \
                                     'code %d' % (container, obj['name'],
-                                    e.http_status)
+                                    e.http_status))
                     elif options.verbose:
-                        print "%s/%s won't expire for %ds; skipping" % \
+                        print("%s/%s won't expire for %ds; skipping" % \
                               (container, obj['name'],
-                               detail['expires'] - time())
+                               detail['expires'] - time()))
                 elif options.verbose:
-                    print '%s/%s last modified %ss ago; skipping' % \
+                    print('%s/%s last modified %ss ago; skipping' % \
                           (container, obj['name'],
-                           ago.days * 86400 + ago.seconds)
+                           ago.days * 86400 + ago.seconds))
                 sleep(options.sleep)
     if options.verbose:
-        print 'Done.'
+        print('Done.')
