@@ -14,12 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-try:
-    import simplejson as json
-except ImportError:
-    import json
 from getpass import getpass
 import gettext
+import json
 from optparse import OptionParser
 from sys import argv
 from sys import exit

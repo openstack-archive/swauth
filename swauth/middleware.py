@@ -18,10 +18,7 @@ from hashlib import sha1
 import hmac
 from httplib import HTTPConnection
 from httplib import HTTPSConnection
-try:
-    import simplejson as json
-except ImportError:
-    import json
+import json
 from time import gmtime
 from time import strftime
 from time import time

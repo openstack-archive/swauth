@@ -14,10 +14,7 @@
 # limitations under the License.
 
 from contextlib import contextmanager
-try:
-    import simplejson as json
-except ImportError:
-    import json
+import json
 from time import time
 import unittest
 
