@@ -63,6 +63,17 @@ use = egg:swauth#swauth
 # Highly recommended to change this. If you comment this out, the Swauth
 # administration features will be disabled for this proxy.
 super_admin_key = swauthkey
+#
+# This enables LDAP authentication. When a user is generating a token,
+# his password is not matched with the locally stored password, but
+# instead with the password from a LDAP server.
+#   use_ldap = true
+# The URI of the LDAP server.
+#   ldap_uri = ldap://example.com
+# A format string which forms the bind DN, which will be used for every user
+# for authentication with the LDAP server. It should contain exactly one
+# conversion specifier, in which the username will be inserted.
+#   ldap_bind_dn_format = uid=%s,ou=users,o=organization,o=root
 
 [filter:ratelimit]
 # Standard from Swift
