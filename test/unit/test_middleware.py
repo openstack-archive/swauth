@@ -15,6 +15,8 @@
 
 from contextlib import contextmanager
 import json
+import ldap
+import mock
 from time import time
 import unittest
 
@@ -111,11 +113,13 @@ class FakeConn(object):
 class TestAuth(unittest.TestCase):
 
     def setUp(self):
-        self.test_auth = \
-            auth.filter_factory({
-                'super_admin_key': 'supertest',
+        conf = {'super_admin_key': 'supertest',
                 'token_life': str(DEFAULT_TOKEN_LIFE),
-                'max_token_life': str(MAX_TOKEN_LIFE)})(FakeApp())
+                'max_token_life': str(MAX_TOKEN_LIFE)}
+        self.test_auth = auth.filter_factory(conf)(FakeApp())
+        conf["use_ldap"] = "true"
+        conf["ldap_bind_dn_format"] = "%s"
+        self.ldap_test_auth = auth.filter_factory(conf)(FakeApp())
 
     def test_super_admin_key_not_required(self):
         auth.filter_factory({})(FakeApp())
@@ -3418,6 +3422,23 @@ class TestAuth(unittest.TestCase):
     def test_credentials_match_fail_plaintext(self):
         self.assertTrue(not self.test_auth.credentials_match(
             {'auth': 'plaintext:key'}, 'notkey'))
+
+    def test_ldap_credentials_match_success(self):
+        with mock.patch("ldap.initialize"):
+            creds = {"groups": [{"name": "a:u"}]}
+            self.assertTrue(self.ldap_test_auth.credentials_match(creds,
+                                                                  'key'))
+
+    def test_ldap_credentials_match_fail_no_details(self):
+        self.assertTrue(not self.ldap_test_auth.credentials_match(None,
+                                                                  'notkey'))
+
+    def test_ldap_credentials_match_fail_invalid_creds(self):
+        with mock.patch("ldap.initialize") as m:
+            m.return_value.simple_bind_s.side_effect = ldap.INVALID_CREDENTIALS
+            creds = {"groups": [{"name": "a:u"}]}
+            self.assertTrue(not self.ldap_test_auth.
+                            credentials_match(creds, 'notkey'))
 
     def test_is_user_changing_own_key_err(self):
         # User does not exist
