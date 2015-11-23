@@ -18,7 +18,12 @@ from hashlib import sha1
 import hmac
 from httplib import HTTPConnection
 from httplib import HTTPSConnection
+try:
+    import ldap
+except ImportError:
+    pass
 import json
+import sys
 from time import gmtime
 from time import strftime
 from time import time
@@ -47,6 +52,7 @@ from swift.common.middleware.acl import clean_acl
 from swift.common.middleware.acl import parse_acl
 from swift.common.middleware.acl import referrer_allowed
 from swift.common.utils import cache_from_env
+from swift.common.utils import config_true_value
 from swift.common.utils import get_logger
 from swift.common.utils import get_remote_client
 from swift.common.utils import split_path
@@ -160,6 +166,13 @@ class Swauth(object):
         self.agent = '%(orig)s Swauth'
         self.swift_source = 'SWTH'
         self.default_storage_policy = conf.get('default_storage_policy', None)
+        self.use_ldap = config_true_value(conf.get("use_ldap"))
+        if self.use_ldap:
+            if "ldap" not in sys.modules:
+                raise ImportError("LDAP needs python-ldap")
+            self.ldap_user_tree_dn = conf.get('ldap_user_tree_dn')
+            self.ldap_uri = conf.get('ldap_uri')
+            self.ldap_uid_attr = conf.get('ldap_uid_attr')
 
     def make_pre_authed_request(self, env, method=None, path=None, body=None,
                                 headers=None):
@@ -1506,12 +1519,26 @@ class Swauth(object):
 
     def credentials_match(self, user_detail, key):
         """Returns True if the key is valid for the user_detail.
-        It will use self.auth_encoder to check for a key match.
+        Tries either to use LDAP if self.use_ldap is true
+        or self.auth_encoder to check for a key match.
 
         :param user_detail: The dict for the user.
         :param key: The key to validate for the user.
         :returns: True if the key is valid for the user, False if not.
         """
+        if self.use_ldap and user_detail:
+            uid = user_detail.get("groups")[0]["name"].split(":")[1]
+            conn = ldap.initialize(self.ldap_uri)
+            bind_dn = "%s=%s,%s" % (self.ldap_uid_attr, uid,
+                                    self.ldap_user_tree_dn)
+            try:
+                conn.simple_bind_s(bind_dn, key)
+                success = True
+            except ldap.LDAPError:
+                success = False
+
+            return success
+
         return user_detail and self.auth_encoder().match(
           key, user_detail.get('auth'))
 
