@@ -2,4 +2,5 @@
 *.py[co]
 .DS_Store
 .coverage
+.tox
 cover
