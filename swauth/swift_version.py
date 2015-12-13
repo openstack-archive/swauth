@@ -12,7 +12,6 @@
 # limitations under the License.
 
 import swift
-from sys import stderr
 
 
 MAJOR = None
@@ -54,51 +53,7 @@ def newer_than(value):
                 elif REVISION == revision:
                     if not FINAL or final:
                         return False
-    except Exception as err:
-        stderr.write(
-            "Unable to automatically detect if %r is newer_than(%r) so just "
-            "assuming it is: %s\n" % (
-                getattr(swift, "__version__", "no swift.__version__"),
-                value, err))
+    except Exception:
+        # Unable to detect if it's newer, better to fail
+        return False
     return True
-
-
-def run_tests():
-    global MAJOR
-    orig_version = swift.__version__
-    try:
-        swift.__version__ = '1.3'
-        MAJOR = None
-        assert(newer_than('1.2'))
-        assert(newer_than('1.2.9'))
-        assert(newer_than('1.3-dev'))
-        assert(newer_than('1.3.0-dev'))
-        assert(not newer_than('1.3'))
-        assert(not newer_than('1.3.0'))
-        assert(not newer_than('1.3.1-dev'))
-        assert(not newer_than('1.3.1'))
-        assert(not newer_than('1.4'))
-        assert(not newer_than('2.0'))
-        swift.__version__ = '1.7.7-dev'
-        MAJOR = None
-        assert(newer_than('1.6'))
-        assert(newer_than('1.7'))
-        assert(newer_than('1.7.6-dev'))
-        assert(newer_than('1.7.6'))
-        assert(not newer_than('1.7.7'))
-        assert(not newer_than('1.7.8-dev'))
-        assert(not newer_than('1.7.8'))
-        assert(not newer_than('1.8.0'))
-        assert(not newer_than('2.0'))
-        swift.__version__ = '1.10.0-2.el6'
-        MAJOR = None
-        assert(not newer_than('2.0'))
-        swift.__version__ = 'garbage'
-        MAJOR = None
-        assert(newer_than('2.0'))
-    finally:
-        swift.__version__ = orig_version
-
-
-if __name__ == '__main__':
-    run_tests()
