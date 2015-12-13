@@ -57,3 +57,26 @@ def newer_than(value):
         # Unable to detect if it's newer, better to fail
         return False
     return True
+
+
+def at_least(value):
+    global MAJOR, MINOR, REVISION, FINAL
+    try:
+        major, minor, revision, final = parse(value)
+        if MAJOR is None:
+            MAJOR, MINOR, REVISION, FINAL = parse(swift.__version__)
+        if MAJOR < major:
+            return False
+        elif MAJOR == major:
+            if MINOR < minor:
+                return False
+            elif MINOR == minor:
+                if REVISION < revision:
+                    return False
+                elif REVISION == revision:
+                    if not FINAL and final:
+                        return False
+    except Exception:
+        # Unable to detect if it's newer, better to fail
+        return False
+    return True

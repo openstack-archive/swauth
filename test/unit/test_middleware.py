@@ -15,6 +15,7 @@
 
 from contextlib import contextmanager
 import json
+import mock
 from time import time
 import unittest
 
@@ -37,16 +38,16 @@ class FakeMemcache(object):
     def get(self, key):
         return self.store.get(key)
 
-    def set(self, key, value, timeout=0, time=0):
+    def set(self, key, value, time=0):
         self.store[key] = value
         return True
 
-    def incr(self, key, timeout=0, time=0):
+    def incr(self, key, time=0):
         self.store[key] = self.store.setdefault(key, 0) + 1
         return self.store[key]
 
     @contextmanager
-    def soft_lock(self, key, timeout=0, retries=5, time=0):
+    def soft_lock(self, key, retries=5, time=0):
         yield True
 
     def delete(self, key):
@@ -116,6 +117,13 @@ class TestAuth(unittest.TestCase):
                 'super_admin_key': 'supertest',
                 'token_life': str(DEFAULT_TOKEN_LIFE),
                 'max_token_life': str(MAX_TOKEN_LIFE)})(FakeApp())
+
+    def test_swift_version(self):
+        app = FakeApp()
+
+        with mock.patch('swauth.swift_version.at_least') as mock_at_least:
+            mock_at_least.return_value = False
+            self.assertRaises(ValueError, auth.filter_factory({}), app)
 
     def test_super_admin_key_not_required(self):
         auth.filter_factory({})(FakeApp())
