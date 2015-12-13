@@ -14,10 +14,9 @@
 # limitations under the License.
 
 import gettext
+import pbr.version
 
 
-#: Version information (major, minor, revision[, 'dev']).
-version_info = (1, 0, 9, 'dev')
-#: Version string 'major.minor.revision'.
-version = __version__ = ".".join(map(str, version_info))
+__version__ = pbr.version.VersionInfo(
+    'swauth').version_string()
 gettext.install('swauth')
