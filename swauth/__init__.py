@@ -14,10 +14,21 @@
 # limitations under the License.
 
 import gettext
+import pkg_resources
 
 
-#: Version information (major, minor, revision[, 'dev']).
-version_info = (1, 0, 9, 'dev')
-#: Version string 'major.minor.revision'.
-version = __version__ = ".".join(map(str, version_info))
+try:
+    # First, try to get our version out of PKG-INFO. If we're installed,
+    # this'll let us find our version without pulling in pbr. After all, if
+    # we're installed on a system, we're not in a Git-managed source tree, so
+    # pbr doesn't really buy us anything.
+    __version__ = pkg_resources.get_provider(
+        pkg_resources.Requirement.parse('swauth')).version
+except pkg_resources.DistributionNotFound:
+    # No PKG-INFO? We're probably running from a checkout, then. Let pbr do
+    # its thing to figure out a version number.
+    import pbr.version
+    __version__ = pbr.version.VersionInfo(
+        'swauth').version_string()
+
 gettext.install('swauth')
