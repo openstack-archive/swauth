@@ -1,3 +1,21 @@
+swauth (1.1.0)
+
+    This is first release after move to OpenStack Infra
+
+    Allow users to change their own password/key
+
+    Add support for storage policy
+
+    Show password prompt if key is not specified
+
+    Allow to use Keystone at same time
+
+    Support SHA512 for password hashing
+
+    Code cleanup
+
+    Bugfixies a security fixies
+
 swauth (1.0.8)
 
    Added request.environ[reseller_request] = True if request is coming from an
