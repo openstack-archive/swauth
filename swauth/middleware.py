@@ -146,7 +146,7 @@ class Swauth(object):
             msg = _('No super_admin_key set in conf file; Swauth '
                     'administration features will be disabled.')
             try:
-                self.logger.warn(msg)
+                self.logger.warning(msg)
             except Exception:
                 pass
         self.token_life = int(conf.get('token_life', 86400))
@@ -309,7 +309,7 @@ class Swauth(object):
             if self.swauth_remote:
                 # TODO(gholt): Support S3-style authorization with
                 # swauth_remote mode
-                self.logger.warn('S3-style authorization not supported yet '
+                self.logger.warning('S3-style authorization not supported yet '
                                  'with swauth_remote mode.')
                 return None
             try:
