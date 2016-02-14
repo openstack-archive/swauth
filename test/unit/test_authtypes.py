@@ -50,7 +50,7 @@ class TestSha1(unittest.TestCase):
             .return_value = 'salt'
         enc_key = self.auth_encoder.encode('keystring')
         self.assertEqual('sha1:salt$d50dc700c296e23ce5b41f7431a0e01f69010f06',
-                          enc_key)
+                         enc_key)
 
     def test_sha1_valid_match(self):
         creds = 'sha1:salt$d50dc700c296e23ce5b41f7431a0e01f69010f06'

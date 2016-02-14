@@ -180,8 +180,8 @@ class TestAuth(unittest.TestCase):
         except Exception as err:
             exc = err
         self.assertEqual(str(exc),
-                          'Invalid auth_type in config file: %s' %
-                          'Nonexistant')
+                         'Invalid auth_type in config file: %s' %
+                         'Nonexistant')
 
     def test_default_swift_cluster_init(self):
         app = FakeApp()
@@ -190,11 +190,11 @@ class TestAuth(unittest.TestCase):
             'default_swift_cluster': 'local#badscheme://host/path'}), app)
         ath = auth.filter_factory({'super_admin_key': 'supertest'})(app)
         self.assertEqual(ath.default_swift_cluster,
-                          'local#http://127.0.0.1:8080/v1')
+                         'local#http://127.0.0.1:8080/v1')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
             'default_swift_cluster': 'local#http://host/path'})(app)
         self.assertEqual(ath.default_swift_cluster,
-                          'local#http://host/path')
+                         'local#http://host/path')
         ath = auth.filter_factory({'super_admin_key': 'supertest',
             'default_swift_cluster': 'local#https://host/path/'})(app)
         self.assertEqual(ath.dsc_url, 'https://host/path')
@@ -213,14 +213,14 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/v1/AUTH_account').get_response(self.test_auth)
         self.assertEqual(resp.status_int, 401)
         self.assertEqual(resp.environ['swift.authorize'],
-                          self.test_auth.authorize)
+                         self.test_auth.authorize)
 
     def test_auth_deny_non_reseller_prefix(self):
         resp = Request.blank('/v1/BLAH_account',
             headers={'X-Auth-Token': 'BLAH_t'}).get_response(self.test_auth)
         self.assertEqual(resp.status_int, 401)
         self.assertEqual(resp.environ['swift.authorize'],
-                          self.test_auth.denied_response)
+                         self.test_auth.denied_response)
 
     def test_auth_deny_non_reseller_prefix_no_override(self):
         fake_authorize = lambda x: Response(status='500 Fake')
@@ -244,7 +244,7 @@ class TestAuth(unittest.TestCase):
         # one for checking auth, two for request passed along
         self.assertEqual(local_app.calls, 2)
         self.assertEqual(resp.environ['swift.authorize'],
-                          local_auth.denied_response)
+                         local_auth.denied_response)
 
     def test_auth_no_reseller_prefix_allow(self):
         # Ensures that when we have no reseller prefix, we can still allow
@@ -264,7 +264,7 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.status_int, 204)
         self.assertEqual(local_app.calls, 2)
         self.assertEqual(resp.environ['swift.authorize'],
-                          local_auth.authorize)
+                         local_auth.authorize)
 
     def test_auth_no_reseller_prefix_no_token(self):
         # Check that normally we set up a call back to our authorize.
@@ -274,7 +274,7 @@ class TestAuth(unittest.TestCase):
         resp = Request.blank('/v1/account').get_response(local_auth)
         self.assertEqual(resp.status_int, 401)
         self.assertEqual(resp.environ['swift.authorize'],
-                          local_auth.authorize)
+                         local_auth.authorize)
         # Now make sure we don't override an existing swift.authorize when we
         # have no reseller prefix.
         local_auth = \
@@ -715,9 +715,9 @@ class TestAuth(unittest.TestCase):
         self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -751,9 +751,9 @@ class TestAuth(unittest.TestCase):
         self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -791,9 +791,9 @@ class TestAuth(unittest.TestCase):
         self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -823,9 +823,9 @@ class TestAuth(unittest.TestCase):
         self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -855,9 +855,9 @@ class TestAuth(unittest.TestCase):
         self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -887,9 +887,9 @@ class TestAuth(unittest.TestCase):
         self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -917,9 +917,9 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.content_type, CONTENT_TYPE_JSON)
         self.assertEqual(resp.headers.get('x-auth-token'), 'AUTH_tktest')
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -951,9 +951,9 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.content_type, CONTENT_TYPE_JSON)
         self.assertNotEqual(resp.headers.get('x-auth-token'), 'AUTH_tktest')
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -989,9 +989,9 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.content_type, CONTENT_TYPE_JSON)
         self.assertNotEqual(resp.headers.get('x-auth-token'), 'AUTH_tktest')
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -1027,9 +1027,9 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.content_type, CONTENT_TYPE_JSON)
         self.assertNotEqual(resp.headers.get('x-auth-token'), 'AUTH_tktest')
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -1157,7 +1157,7 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.status_int, 200)
         self.assertEqual(resp.content_type, CONTENT_TYPE_JSON)
         self.assertEqual(json.loads(resp.body),
-                          {"accounts": [{"name": "act"}]})
+                         {"accounts": [{"name": "act"}]})
         self.assertEqual(self.test_auth.app.calls, 2)
 
         self.test_auth.app = FakeApp(iter([
@@ -1179,7 +1179,7 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.status_int, 200)
         self.assertEqual(resp.content_type, CONTENT_TYPE_JSON)
         self.assertEqual(json.loads(resp.body),
-                          {"accounts": [{"name": "act"}]})
+                         {"accounts": [{"name": "act"}]})
         self.assertEqual(self.test_auth.app.calls, 3)
 
     def test_get_reseller_fail_bad_creds(self):
@@ -1270,8 +1270,8 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(json.loads(resp.body),
             {'account_id': 'AUTH_cfa',
              'services': {'storage':
-                            {'default': 'local',
-                             'local': 'http://127.0.0.1:8080/v1/AUTH_cfa'}},
+                          {'default': 'local',
+                          'local': 'http://127.0.0.1:8080/v1/AUTH_cfa'}},
              'users': [{'name': 'tester'}, {'name': 'tester3'}]})
         self.assertEqual(self.test_auth.app.calls, 3)
 
@@ -1306,8 +1306,8 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(json.loads(resp.body),
             {'account_id': 'AUTH_cfa',
              'services': {'storage':
-                            {'default': 'local',
-                             'local': 'http://127.0.0.1:8080/v1/AUTH_cfa'}},
+                          {'default': 'local',
+                           'local': 'http://127.0.0.1:8080/v1/AUTH_cfa'}},
              'users': [{'name': 'tester'}, {'name': 'tester3'}]})
         self.assertEqual(self.test_auth.app.calls, 4)
 
@@ -2783,7 +2783,7 @@ class TestAuth(unittest.TestCase):
             # GET of user object (regular user)
             # This shouldn't actually get called, checked
             # below
-           ('200 Ok', {}, json.dumps({"groups": [{"name": "act:usr"},
+            ('200 Ok', {}, json.dumps({"groups": [{"name": "act:usr"},
              {"name": "test"}], "auth": "plaintext:key"}))]))
         resp = Request.blank('/auth/v2/act/usr',
             environ={'REQUEST_METHOD': 'PUT'},
@@ -3270,7 +3270,7 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.status_int, 204)
         self.assertEqual(self.test_auth.app.calls, 1)
         self.assertEqual(resp.headers.get('x-auth-groups'),
-                          'act:usr,act,AUTH_cfa')
+                         'act:usr,act,AUTH_cfa')
         self.assertTrue(float(resp.headers['x-auth-ttl']) < 1,
                      resp.headers['x-auth-ttl'])
 
@@ -3313,7 +3313,7 @@ class TestAuth(unittest.TestCase):
         except Exception as err:
             exc = err
         self.assertEqual(str(exc),
-                          'No memcache set up; required for Swauth middleware')
+                         'No memcache set up; required for Swauth middleware')
 
     def test_get_itoken_success(self):
         fmc = FakeMemcache()
@@ -3326,7 +3326,7 @@ class TestAuth(unittest.TestCase):
     def test_get_admin_detail_fail_no_colon(self):
         self.test_auth.app = FakeApp(iter([]))
         self.assertEqual(self.test_auth.get_admin_detail(Request.blank('/')),
-                          None)
+                         None)
         self.assertEqual(self.test_auth.get_admin_detail(Request.blank('/',
             headers={'X-Auth-Admin-User': 'usr'})), None)
         self.assertRaises(StopIteration, self.test_auth.get_admin_detail,
@@ -3374,7 +3374,7 @@ class TestAuth(unittest.TestCase):
         detail = self.test_auth.get_user_detail(
             Request.blank('/',
                           headers={'X-Auth-Admin-User': 'act:usr'}),
-                          'act', 'usr')
+            'act', 'usr')
         self.assertEqual(self.test_auth.app.calls, 1)
         detail_json = json.loads(detail)
         self.assertEqual("plaintext:key", detail_json['auth'])
@@ -3385,7 +3385,7 @@ class TestAuth(unittest.TestCase):
         detail = self.test_auth.get_user_detail(
             Request.blank('/',
                           headers={'X-Auth-Admin-User': 'act:usr'}),
-                          'act', 'usr')
+            'act', 'usr')
         self.assertEqual(self.test_auth.app.calls, 1)
         self.assertEqual(detail, None)
 
@@ -3397,11 +3397,11 @@ class TestAuth(unittest.TestCase):
             self.test_auth.get_user_detail(
                 Request.blank('/',
                               headers={'X-Auth-Admin-User': 'act:usr'}),
-                              'act', 'usr')
+                'act', 'usr')
         except Exception as err:
             exc = err
         self.assertEqual(str(exc), 'Could not get user object: '
-                          '/v1/AUTH_.auth/act/usr 503 Service Unavailable')
+                         '/v1/AUTH_.auth/act/usr 503 Service Unavailable')
         self.assertEqual(self.test_auth.app.calls, 1)
 
     def test_is_user_reseller_admin_success(self):
@@ -3413,7 +3413,7 @@ class TestAuth(unittest.TestCase):
         result = self.test_auth.is_user_reseller_admin(
             Request.blank('/',
                           headers={'X-Auth-Admin-User': 'act:usr'}),
-                          'act', 'usr')
+            'act', 'usr')
         self.assertEqual(self.test_auth.app.calls, 1)
         self.assertTrue(result)
 
@@ -3426,7 +3426,7 @@ class TestAuth(unittest.TestCase):
         result = self.test_auth.is_user_reseller_admin(
             Request.blank('/',
                           headers={'X-Auth-Admin-User': 'act:usr'}),
-                          'act', 'usr')
+            'act', 'usr')
         self.assertEqual(self.test_auth.app.calls, 1)
         self.assertFalse(result)
 
@@ -3689,9 +3689,9 @@ class TestAuth(unittest.TestCase):
         self.assertTrue(resp.headers.get('x-auth-token',
             '').startswith('AUTH_tk'), resp.headers.get('x-auth-token'))
         self.assertEqual(resp.headers.get('x-auth-token'),
-                          resp.headers.get('x-storage-token'))
+                         resp.headers.get('x-storage-token'))
         self.assertEqual(resp.headers.get('x-storage-url'),
-                          'http://127.0.0.1:8080/v1/AUTH_cfa')
+                         'http://127.0.0.1:8080/v1/AUTH_cfa')
         self.assertEqual(json.loads(resp.body),
             {"storage": {"default": "local",
              "local": "http://127.0.0.1:8080/v1/AUTH_cfa"}})
@@ -3889,7 +3889,7 @@ class TestAuth(unittest.TestCase):
         resp = req.get_response(self.test_auth)
         self.assertEqual(resp.status_int, 401)
         self.assertEqual(resp.environ['swift.authorize'],
-                          self.test_auth.authorize)
+                         self.test_auth.authorize)
 
     def test_override_asked_for_and_allowed(self):
         self.test_auth = \
@@ -3925,7 +3925,7 @@ class TestAuth(unittest.TestCase):
         resp = req.get_response(self.test_auth)
         self.assertEqual(resp.status_int, 401)
         self.assertEqual(resp.environ['swift.authorize'],
-                          self.test_auth.denied_response)
+                         self.test_auth.denied_response)
 
     def test_default_storage_policy(self):
         ath = auth.filter_factory({})(FakeApp())

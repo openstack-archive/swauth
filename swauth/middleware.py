@@ -1076,7 +1076,7 @@ class Swauth(object):
             raise Exception('Could not retrieve account id value: %s %s' %
                             (path, resp.status))
         headers = {'X-Object-Meta-Account-Id':
-                        resp.headers['x-container-meta-account-id']}
+                   resp.headers['x-container-meta-account-id']}
         # Create the object in the main auth account (this object represents
         # the user)
         path = quote('/v1/%s/%s/%s' % (self.auth_account, account, user))
@@ -1558,8 +1558,8 @@ class Swauth(object):
         :param returns: True if .super_admin.
         """
         return req.headers.get('x-auth-admin-user') == '.super_admin' and \
-               self.super_admin_key and \
-               req.headers.get('x-auth-admin-key') == self.super_admin_key
+            self.super_admin_key and \
+            req.headers.get('x-auth-admin-key') == self.super_admin_key
 
     def is_reseller_admin(self, req, admin_detail=None):
         """Returns True if the admin specified in the request represents a
@@ -1602,7 +1602,7 @@ class Swauth(object):
                 return False
             req.credentials_valid = True
             return admin_detail and admin_detail['account'] == account and \
-                   '.admin' in (g['name'] for g in admin_detail['groups'])
+                '.admin' in (g['name'] for g in admin_detail['groups'])
         return False
 
     def posthooklogger(self, env, req):
