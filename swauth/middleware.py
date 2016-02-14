@@ -60,6 +60,7 @@ from swauth import swift_version
 
 
 SWIFT_MIN_VERSION = "2.2.0"
+CONTENT_TYPE_JSON = 'application/json'
 
 
 class Swauth(object):
@@ -613,7 +614,8 @@ class Swauth(object):
                 if container['name'][0] != '.':
                     listing.append({'name': container['name']})
             marker = sublisting[-1]['name'].encode('utf-8')
-        return Response(body=json.dumps({'accounts': listing}))
+        return Response(body=json.dumps({'accounts': listing}),
+                        content_type=CONTENT_TYPE_JSON)
 
     def handle_get_account(self, req):
         """Handles the GET v2/<account> call for getting account information.
@@ -669,8 +671,10 @@ class Swauth(object):
                 if obj['name'][0] != '.':
                     listing.append({'name': obj['name']})
             marker = sublisting[-1]['name'].encode('utf-8')
-        return Response(body=json.dumps({'account_id': account_id,
-                                    'services': services, 'users': listing}))
+        return Response(content_type=CONTENT_TYPE_JSON,
+                        body=json.dumps({'account_id': account_id,
+                                         'services': services,
+                                         'users': listing}))
 
     def handle_set_services(self, req):
         """Handles the POST v2/<account>/.services call for setting services
@@ -739,7 +743,8 @@ class Swauth(object):
         if resp.status_int // 100 != 2:
             raise Exception('Could not save .services object: %s %s' %
                             (path, resp.status))
-        return Response(request=req, body=services)
+        return Response(request=req, body=services,
+                        content_type=CONTENT_TYPE_JSON)
 
     def handle_put_account(self, req):
         """Handles the PUT v2/<account> call for adding an account to the auth
@@ -1016,7 +1021,7 @@ class Swauth(object):
                ('.reseller_admin' in display_groups and
                     not self.is_super_admin(req)):
                     return self.denied_response(req)
-        return Response(body=body)
+        return Response(body=body, content_type=CONTENT_TYPE_JSON)
 
     def handle_put_user(self, req):
         """Handles the PUT v2/<account>/<user> call for adding a user to an
@@ -1256,10 +1261,15 @@ class Swauth(object):
                 key == self.super_admin_key:
             token = self.get_itoken(req.environ)
             url = '%s/%s.auth' % (self.dsc_url, self.reseller_prefix)
-            return Response(request=req,
-              body=json.dumps({'storage': {'default': 'local', 'local': url}}),
-              headers={'x-auth-token': token, 'x-storage-token': token,
-                       'x-storage-url': url})
+            return Response(
+                request=req,
+                content_type=CONTENT_TYPE_JSON,
+                body=json.dumps({'storage': {'default': 'local',
+                                             'local': url}}),
+                headers={'x-auth-token': token,
+                         'x-storage-token': token,
+                         'x-storage-url': url})
+
         # Authenticate user
         path = quote('/v1/%s/%s/%s' % (self.auth_account, account, user))
         resp = self.make_pre_authed_request(
@@ -1358,8 +1368,12 @@ class Swauth(object):
                             (path, resp.status))
         detail = json.loads(resp.body)
         url = detail['storage'][detail['storage']['default']]
-        return Response(request=req, body=resp.body,
-            headers={'x-auth-token': token, 'x-storage-token': token,
+        return Response(
+            request=req,
+            body=resp.body,
+            content_type=CONTENT_TYPE_JSON,
+            headers={'x-auth-token': token,
+                     'x-storage-token': token,
                      'x-auth-token-expires': str(int(expires - time())),
                      'x-storage-url': url})
 
