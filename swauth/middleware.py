@@ -342,7 +342,7 @@ class Swauth(object):
                                             account_id, 1)
             detail = json.loads(resp.body)
 
-            password = detail['auth'].split(':')[-1]
+            password_type, password = detail['auth'].split(':')
             msg = base64.urlsafe_b64decode(unquote(token))
 
             # https://bugs.python.org/issue5285
@@ -354,6 +354,12 @@ class Swauth(object):
             s = base64.encodestring(hmac.new(password,
                                              msg, sha1).digest()).strip()
             if s != sign:
+                if password_type != 'plaintext':
+                    self.logger.warning("If there is HMAC signature mismatch,\
+                    it's probably because AWS client creates HMAC signature\
+                    with password in plaintext as input whereas swauth\
+                    generates HMAC signature with sha1/sha512 of password as\
+                    input.")
                 return None
             groups = [g['name'] for g in detail['groups']]
             if '.admin' in groups:
