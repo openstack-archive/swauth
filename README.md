@@ -70,3 +70,23 @@ Web Admin Install
     -U .super_admin:.super_admin -K swauthkey upload .webadmin .``
 
 3)  Open ``http://127.0.0.1:8080/auth/`` in your browser.
+
+
+Swift3 Middleware Compatibility
+-------------------------------
+[**Swift3 middleware**](https://github.com/openstack/swift3) can be used with
+swauth when `auth_type` in swauth is configured to be *Plaintext* (default).
+
+    [pipeline:main]
+    pipeline = catch_errors cache swift3 swauth proxy-server
+
+The AWS S3 client uses password in plaintext to
+[compute HMAC signature](https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html).
+When `auth_type` in swauth is configured to be *Sha1* or *Sha512*, swauth
+can only use the stored hashed password to compute HMAC signature. This results
+in signature mismatch although the user credentials are correct.
+
+When `auth_type` is **not** *Plaintext*, the only way for S3 clients to
+authenticate is by giving SHA1/SHA512 of password as input to it's HMAC
+function. In this case, the S3 clients will have to know `auth_type` and
+`salt` beforehand.
