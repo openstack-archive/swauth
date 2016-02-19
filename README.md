@@ -70,3 +70,16 @@ Web Admin Install
     -U .super_admin:.super_admin -K swauthkey upload .webadmin .``
 
 3)  Open ``http://127.0.0.1:8080/auth/`` in your browser.
+
+
+Swift3 Middleware Compatibility
+-------------------------------
+[**Swift3 middleware**](https://github.com/openstack/swift3) can be used with
+swauth when `auth_type` in swauth is configured to be *Plaintext* (default).
+
+    [pipeline:main]
+    pipeline = catch_errors cache swift3 swauth proxy-server
+
+It can be used with `auth_type` set to Sha1/Sha512 too but with certain caveats.
+Refer to swift3 compatibility [section](https://swauth.readthedocs.org/en/latest/#swift3-middleware-compatibility)
+in documentation for further details
