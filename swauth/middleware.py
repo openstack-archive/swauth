@@ -165,6 +165,9 @@ class Swauth(object):
         if self.auth_encoder is None:
             raise ValueError('Invalid auth_type in config file: %s'
                              % self.auth_type)
+        # If auth_type_salt is not set in conf file, a random salt will be
+        # generated for each new password to be encoded.
+        self.auth_encoder.salt = conf.get('auth_type_salt', None)
         self.allow_overrides = \
             conf.get('allow_overrides', 't').lower() in TRUE_VALUES
         self.agent = '%(orig)s Swauth'

@@ -51,6 +51,10 @@ use = egg:swauth#swauth
 # An alternative is 'sha512' which stores only a one-way hash of the key leaving
 # it secure but unavailable for key-signing.
 #   auth_type = plaintext
+# Used if the auth_type is sha1 or sha512. Salt is data(text) that is used as
+# an additional input to the one-way encoding function. If not set, a random
+# salt will be generated for each password.
+#   auth_type_salt =
 # This allows middleware higher in the WSGI pipeline to override auth
 # processing, useful for middleware such as tempurl and formpost. If you know
 # you're not going to use such middleware and you want a bit of extra security,
