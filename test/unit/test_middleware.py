@@ -119,6 +119,39 @@ class TestAuth(unittest.TestCase):
                 'token_life': str(DEFAULT_TOKEN_LIFE),
                 'max_token_life': str(MAX_TOKEN_LIFE)})(FakeApp())
 
+    def test_salt(self):
+        for auth_type in ('sha1', 'sha512'):
+            # Salt not manually set
+            test_auth = \
+                auth.filter_factory({
+                    'super_admin_key': 'supertest',
+                    'token_life': str(DEFAULT_TOKEN_LIFE),
+                    'max_token_life': str(MAX_TOKEN_LIFE),
+                    'auth_type': auth_type})(FakeApp())
+            self.assertEqual(test_auth.auth_encoder.salt, None)
+            _m_urandom = mock.Mock(return_value="abc")
+            with mock.patch("os.urandom", _m_urandom):
+                h_key = test_auth.auth_encoder().encode("key")
+            self.assertTrue(_m_urandom.called)
+            prefix = auth_type + ":" + "abc".encode('base64').rstrip()
+            self.assertTrue(h_key.startswith(prefix))
+
+            # Salt manually set
+            test_auth = \
+                auth.filter_factory({
+                    'super_admin_key': 'supertest',
+                    'token_life': str(DEFAULT_TOKEN_LIFE),
+                    'max_token_life': str(MAX_TOKEN_LIFE),
+                    'auth_type': auth_type,
+                    'auth_type_salt': "mysalt"})(FakeApp())
+            self.assertEqual(test_auth.auth_encoder.salt, "mysalt")
+            _m_urandom = mock.Mock()
+            with mock.patch("os.urandom", _m_urandom):
+                h_key = test_auth.auth_encoder().encode("key")
+            self.assertFalse(_m_urandom.called)
+            prefix = (auth_type + ":" + "mysalt")
+            self.assertTrue(h_key.startswith(prefix))
+
     def test_swift_version(self):
         app = FakeApp()
 
