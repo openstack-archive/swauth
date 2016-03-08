@@ -89,10 +89,13 @@ class Sha1(object):
         """Encodes a user key into a particular format. The result of this method
         will be used by swauth for storing user credentials.
 
+        If salt is not manually set in conf file, a random salt will be
+        generated and used.
+
         :param key: User's secret key
         :returns: A string representing user credentials
         """
-        salt = os.urandom(32).encode('base64').rstrip()
+        salt = self.salt or os.urandom(32).encode('base64').rstrip()
         return self.encode_w_salt(salt, key)
 
     def match(self, key, creds):
@@ -134,10 +137,13 @@ class Sha512(object):
         """Encodes a user key into a particular format. The result of this method
         will be used by swauth for storing user credentials.
 
+        If salt is not manually set in conf file, a random salt will be
+        generated and used.
+
         :param key: User's secret key
         :returns: A string representing user credentials
         """
-        salt = os.urandom(32).encode('base64').rstrip()
+        salt = self.salt or os.urandom(32).encode('base64').rstrip()
         return self.encode_w_salt(salt, key)
 
     def match(self, key, creds):
