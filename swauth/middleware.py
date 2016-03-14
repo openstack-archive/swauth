@@ -345,7 +345,7 @@ class Swauth(object):
                                             account_id, 1)
             detail = json.loads(resp.body)
 
-            password = detail['auth'].split(':')[-1]
+            password_type, password = detail['auth'].split(':')
             msg = base64.urlsafe_b64decode(unquote(token))
 
             # https://bugs.python.org/issue5285
@@ -353,6 +353,10 @@ class Swauth(object):
                 password = password.encode('utf-8')
             if isinstance(msg, unicode):
                 msg = msg.encode('utf-8')
+
+            if password_type != 'plaintext':
+                # Password isn't plaintext, contains salt string
+                password = password.split('$')[-1]
 
             s = base64.encodestring(hmac.new(password,
                                              msg, sha1).digest()).strip()
