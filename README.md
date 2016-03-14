@@ -80,6 +80,8 @@ swauth when `auth_type` in swauth is configured to be *Plaintext* (default).
     [pipeline:main]
     pipeline = catch_errors cache swift3 swauth proxy-server
 
-It can be used with `auth_type` set to Sha1/Sha512 too but with certain caveats.
+It can be used with `auth_type` set to Sha1/Sha512 too but with certain caveats
+and securtiy concern. Hence, s3 support is disabled by default and you have to
+explicitly enable it in your configuration.
 Refer to swift3 compatibility [section](https://swauth.readthedocs.io/en/latest/#swift3-middleware-compatibility)
 in documentation for further details
