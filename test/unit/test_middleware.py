@@ -4033,13 +4033,50 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.status_int, 400)
         self.assertEqual(resp.body, 'Token exceeds maximum length.')
 
-    def test_crazy_authorization(self):
+    def test_s3_enabled_when_conditions_are_met(self):
+        # auth_type_salt needs to be set
+        for atype in ('Sha1', 'Sha512'):
+            test_auth = \
+                auth.filter_factory({
+                    'super_admin_key': 'supertest',
+                    's3_support': 'on',
+                    'auth_type_salt': 'blah',
+                    'auth_type': atype})(FakeApp())
+            self.assertTrue(test_auth.s3_support)
+        # auth_type_salt need not be set for Plaintext
+        test_auth = \
+            auth.filter_factory({
+                'super_admin_key': 'supertest',
+                's3_support': 'on',
+                'auth_type': 'Plaintext'})(FakeApp())
+        self.assertTrue(test_auth.s3_support)
+
+    def test_s3_disabled_when_conditions_not_met(self):
+        # Conf says that it wants s3 support but other conditions are not met
+        # In that case s3 support should be disabled.
+        for atype in ('Sha1', 'Sha512'):
+            # auth_type_salt is not set
+            test_auth = \
+                auth.filter_factory({
+                    'super_admin_key': 'supertest',
+                    's3_support': 'on',
+                    'auth_type': atype})(FakeApp())
+            self.assertFalse(test_auth.s3_support)
+
+    def test_s3_authorization_default_off(self):
+        self.assertFalse(self.test_auth.s3_support)
         req = self._make_request('/v1/AUTH_account', headers={
-            'authorization': 'somebody elses header value'})
+            'authorization': 's3_header'})
         resp = req.get_response(self.test_auth)
-        self.assertEqual(resp.status_int, 401)
-        self.assertEqual(resp.environ['swift.authorize'],
-                         self.test_auth.denied_response)
+        self.assertEqual(resp.status_int, 400)  # HTTPBadRequest
+        self.assertTrue(resp.environ.get('swift.authorize') is None)
+
+    def test_s3_turned_off_get_groups(self):
+        env = \
+            {'HTTP_AUTHORIZATION': 's3 header'}
+        token = 'whatever'
+        self.test_auth.logger = mock.Mock()
+        self.assertEqual(self.test_auth.get_groups(env, token), None)
 
     def test_default_storage_policy(self):
         ath = auth.filter_factory({})(FakeApp())
@@ -4050,6 +4087,7 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(ath.default_storage_policy, 'ssd')
 
     def test_s3_creds_unicode(self):
+        self.test_auth.s3_support = True
         self.test_auth.app = FakeApp(iter([
             ('200 Ok', {},
              json.dumps({"auth": unicode("plaintext:key)"),
@@ -4064,6 +4102,7 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(self.test_auth.get_groups(env, token), None)
 
     def test_s3_only_hash_passed_to_hmac(self):
+        self.test_auth.s3_support = True
         key = 'dadada'
         salt = 'zuck'
         key_hash = hashlib.sha1('%s%s' % (salt, key)).hexdigest()
