@@ -124,11 +124,20 @@ Web Admin Install
 
 Swift3 Middleware Compatibility
 -------------------------------
-`Swift3 middleware <https://github.com/openstack/swift3>`_ can be used with
-swauth when `auth_type` in swauth is configured to be *Plaintext* (default)::
+
+
+`Swift3 middleware <https://github.com/openstack/swift3>`_ support has to be
+explicitly turned on in conf file using `s3_support` config option. It can
+easily be used with swauth when `auth_type` in swauth is configured to be
+*Plaintext* (default)::
 
     [pipeline:main]
     pipeline = catch_errors cache swift3 swauth proxy-server
+
+    [filter:swauth]
+    use = egg:swauth#swauth
+    super_admin_key = swauthkey
+    s3_support = on
 
 The AWS S3 client uses password in plaintext to
 `compute HMAC signature <https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html>`_
@@ -139,7 +148,22 @@ in signature mismatch although the user credentials are correct.
 When `auth_type` is **not** *Plaintext*, the only way for S3 clients to
 authenticate is by giving SHA1/SHA512 of password as input to it's HMAC
 function. In this case, the S3 clients will have to know `auth_type` and
-`salt` beforehand.
+`auth_type_salt` beforehand. Here is a sample configuration::
+
+    [pipeline:main]
+    pipeline = catch_errors cache swift3 swauth proxy-server
+
+    [filter:swauth]
+    use = egg:swauth#swauth
+    super_admin_key = swauthkey
+    s3_support = on
+    auth_type = Sha512
+    auth_type_salt = mysalt
+
+**Security Concern**: Swauth stores user information (username, password hash,
+salt etc) as objects in the Swift cluster. If these backend objects which
+contain password hashes gets stolen, the intruder will be able to authenticate
+using the hash directly when S3 API is used.
 
 
 Contents
