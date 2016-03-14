@@ -4033,13 +4033,20 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(resp.status_int, 400)
         self.assertEqual(resp.body, 'Token exceeds maximum length.')
 
-    def test_crazy_authorization(self):
+    def test_s3_authorization_default_off(self):
+        self.assertFalse(self.test_auth.s3_support)
         req = self._make_request('/v1/AUTH_account', headers={
-            'authorization': 'somebody elses header value'})
+            'authorization': 's3_header'})
         resp = req.get_response(self.test_auth)
-        self.assertEqual(resp.status_int, 401)
-        self.assertEqual(resp.environ['swift.authorize'],
-                         self.test_auth.denied_response)
+        self.assertEqual(resp.status_int, 400)  # HTTPBadRequest
+        self.assertTrue(resp.environ.get('swift.authorize') is None)
+
+    def test_s3_turned_off_get_groups(self):
+        env = \
+            {'HTTP_AUTHORIZATION': 's3 header'}
+        token = 'whatever'
+        self.test_auth.logger = mock.Mock()
+        self.assertEqual(self.test_auth.get_groups(env, token), None)
 
     def test_default_storage_policy(self):
         ath = auth.filter_factory({})(FakeApp())
@@ -4050,6 +4057,7 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(ath.default_storage_policy, 'ssd')
 
     def test_s3_creds_unicode(self):
+        self.test_auth.s3_support = True
         self.test_auth.app = FakeApp(iter([
             ('200 Ok', {},
              json.dumps({"auth": unicode("plaintext:key)"),
@@ -4064,6 +4072,7 @@ class TestAuth(unittest.TestCase):
         self.assertEqual(self.test_auth.get_groups(env, token), None)
 
     def test_s3_only_hash_passed_to_hmac(self):
+        self.test_auth.s3_support = True
         key = 'dadada'
         salt = 'zuck'
         key_hash = hashlib.sha1('%s%s' % (salt, key)).hexdigest()

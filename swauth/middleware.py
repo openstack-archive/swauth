@@ -168,6 +168,15 @@ class Swauth(object):
         # If auth_type_salt is not set in conf file, a random salt will be
         # generated for each new password to be encoded.
         self.auth_encoder.salt = conf.get('auth_type_salt', None)
+
+        # Due to security concerns, S3 support is disabled by default.
+        self.s3_support = conf.get('s3_support', 'off').lower() in TRUE_VALUES
+        if self.s3_support and self.auth_type != 'Plaintext' \
+                and not self.auth_encoder.salt:
+            msg = _('S3 support requires salt to be manually set in conf '
+                    'file using auth_type_salt config option.')
+            self.logger.warning(msg)
+
         self.allow_overrides = \
             conf.get('allow_overrides', 't').lower() in TRUE_VALUES
         self.agent = '%(orig)s Swauth'
@@ -232,6 +241,9 @@ class Swauth(object):
             elif env.get('PATH_INFO', '').startswith(self.auth_prefix):
                 return self.handle(env, start_response)
         s3 = env.get('HTTP_AUTHORIZATION')
+        if s3 and not self.s3_support:
+            msg = 'S3 support is disabled in swauth.'
+            return HTTPBadRequest(body=msg)(env, start_response)
         token = env.get('HTTP_X_AUTH_TOKEN', env.get('HTTP_X_STORAGE_TOKEN'))
         if token and len(token) > swauth.authtypes.MAX_TOKEN_LENGTH:
             return HTTPBadRequest(body='Token exceeds maximum length.')(env,
@@ -310,6 +322,9 @@ class Swauth(object):
                     groups = None
 
         if env.get('HTTP_AUTHORIZATION'):
+            if not self.s3_support:
+                self.logger.warning('S3 support is disabled in swauth.')
+                return None
             if self.swauth_remote:
                 # TODO(gholt): Support S3-style authorization with
                 # swauth_remote mode
