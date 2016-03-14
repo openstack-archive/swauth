@@ -354,6 +354,10 @@ class Swauth(object):
             if isinstance(msg, unicode):
                 msg = msg.encode('utf-8')
 
+            if '$' in password:
+                # Password isn't plaintext, contains salt string
+                password = password.split('$')[-1]
+
             s = base64.encodestring(hmac.new(password,
                                              msg, sha1).digest()).strip()
             if s != sign:
