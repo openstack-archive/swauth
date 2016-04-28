@@ -2,7 +2,7 @@ Swauth
 ------
 
 An Auth Service for Swift as WSGI Middleware that uses Swift itself as a
-backing store. Docs at: <http://swauth.readthedocs.org/> or ask in #openstack-swauth on
+backing store. Docs at: <https://swauth.readthedocs.io/> or ask in #openstack-swauth on
 freenode [IRC](http://eavesdrop.openstack.org/irclogs/%23openstack-swauth/).
 
 See also <https://github.com/openstack/keystone> for the standard OpenStack
@@ -13,7 +13,7 @@ NOTE
 ----
 
 **Be sure to review the docs at:
-<http://swauth.readthedocs.org/>**
+<https://swauth.readthedocs.io/>**
 
 
 Quick Install
@@ -81,5 +81,5 @@ swauth when `auth_type` in swauth is configured to be *Plaintext* (default).
     pipeline = catch_errors cache swift3 swauth proxy-server
 
 It can be used with `auth_type` set to Sha1/Sha512 too but with certain caveats.
-Refer to swift3 compatibility [section](https://swauth.readthedocs.org/en/latest/#swift3-middleware-compatibility)
+Refer to swift3 compatibility [section](https://swauth.readthedocs.io/en/latest/#swift3-middleware-compatibility)
 in documentation for further details
