@@ -19,7 +19,10 @@ import json
 import mock
 from time import time
 import unittest
-from urllib import quote
+try:
+    from urllib import quote
+except ImportError:
+    from urllib.parse import quote
 
 from swift.common.swob import Request
 from swift.common.swob import Response

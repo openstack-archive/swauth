@@ -16,16 +16,24 @@
 import base64
 from hashlib import sha1
 import hmac
-from httplib import HTTPConnection
-from httplib import HTTPSConnection
+try:
+    from httplib import HTTPConnection
+    from httplib import HTTPSConnection
+except ImportError:
+    from http.client import HTTPConnection
+    from http.client import HTTPSConnection
 import json
 import swift
 from time import gmtime
 from time import strftime
 from time import time
 from traceback import format_exc
-from urllib import quote
-from urllib import unquote
+try:
+    from urllib import quote
+    from urllib import unquote
+except ImportError:
+    from urllib.parse import quote
+    from urllib.parse import unquote
 from uuid import uuid4
 
 from eventlet.timeout import Timeout
