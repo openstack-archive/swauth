@@ -118,7 +118,7 @@ class Sha1(object):
         :returns: A string representing user credentials
         """
         enc_key = '%s%s' % (salt, key)
-        enc_val = hashlib.sha1(enc_key).hexdigest()
+        enc_val = hashlib.sha1(enc_key.encode('utf-8')).hexdigest()
         return "sha1:%s$%s" % (salt, enc_val)
 
     def encode(self, key):
@@ -187,7 +187,7 @@ class Sha512(object):
         :returns: A string representing user credentials
         """
         enc_key = '%s%s' % (salt, key)
-        enc_val = hashlib.sha512(enc_key).hexdigest()
+        enc_val = hashlib.sha512(enc_key.encode('utf-8')).hexdigest()
         return "sha512:%s$%s" % (salt, enc_val)
 
     def encode(self, key):
