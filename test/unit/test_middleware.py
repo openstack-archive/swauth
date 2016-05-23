@@ -18,6 +18,7 @@ import json
 import mock
 from time import time
 import unittest
+from urllib import quote
 
 from swift.common.swob import Request
 from swift.common.swob import Response
@@ -3024,6 +3025,60 @@ class TestAuth(unittest.TestCase):
             ).get_response(self.test_auth)
         self.assertEqual(resp.status_int, 500)
         self.assertEqual(self.test_auth.app.calls, 1)
+
+    def test_put_user_key_hash(self):
+        key_hash = ("sha512:aSm0jEeqIp46T5YLZy1r8+cXs/Xzs1S4VUwVauhBs44=$ef"
+                    "7332ec1288bf69c75682eb8d459d5a84baa7e43f45949c242a9af9"
+                    "7130ef16ac361fe1aa33a789e218122b83c54ef1923fc015080741"
+                    "ca21f6187329f6cb7a")
+
+        self.test_auth.app = FakeApp(iter([
+            ('200 Ok', {'X-Container-Meta-Account-Id': 'AUTH_cfa'}, ''),
+            # PUT of user object
+            ('201 Created', {}, '')]))
+        resp = Request.blank('/auth/v2/act/usr',
+            environ={'REQUEST_METHOD': 'PUT'},
+            headers={'X-Auth-Admin-User': '.super_admin',
+                     'X-Auth-Admin-Key': 'supertest',
+                     'X-Auth-User-Key-Hash': quote(key_hash)}
+            ).get_response(self.test_auth)
+        self.assertEqual(resp.status_int, 201)
+        self.assertEqual(self.test_auth.app.calls, 2)
+        self.assertEqual(json.loads(self.test_auth.app.request.body),
+            {"groups": [{"name": "act:usr"}, {"name": "act"}],
+             "auth": key_hash})
+
+    def test_put_user_key_hash_wrong_type(self):
+        key_hash = "wrong_auth_type:1234"
+
+        self.test_auth.app = FakeApp(iter([
+            ('200 Ok', {'X-Container-Meta-Account-Id': 'AUTH_cfa'}, ''),
+            # PUT of user object
+            ('201 Created', {}, '')]))
+        resp = Request.blank('/auth/v2/act/usr',
+            environ={'REQUEST_METHOD': 'PUT'},
+            headers={'X-Auth-Admin-User': '.super_admin',
+                     'X-Auth-Admin-Key': 'supertest',
+                     'X-Auth-User-Key-Hash': quote(key_hash)}
+            ).get_response(self.test_auth)
+        self.assertEqual(resp.status_int, 400)
+        self.assertEqual(self.test_auth.app.calls, 0)
+
+    def test_put_user_key_hash_wrong_format(self):
+        key_hash = "1234"
+
+        self.test_auth.app = FakeApp(iter([
+            ('200 Ok', {'X-Container-Meta-Account-Id': 'AUTH_cfa'}, ''),
+            # PUT of user object
+            ('201 Created', {}, '')]))
+        resp = Request.blank('/auth/v2/act/usr',
+            environ={'REQUEST_METHOD': 'PUT'},
+            headers={'X-Auth-Admin-User': '.super_admin',
+                     'X-Auth-Admin-Key': 'supertest',
+                     'X-Auth-User-Key-Hash': quote(key_hash)}
+            ).get_response(self.test_auth)
+        self.assertEqual(resp.status_int, 400)
+        self.assertEqual(self.test_auth.app.calls, 0)
 
     def test_delete_user_bad_creds(self):
         self.test_auth.app = FakeApp(iter([
