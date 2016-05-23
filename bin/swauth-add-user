@@ -43,6 +43,9 @@ if __name__ == '__main__':
         'the account already exists, this will have no effect on existing '
         'service URLs. Those will need to be updated with '
         'swauth-set-account-service')
+    parser.add_option('-e', '--hashed', dest='password_hashed',
+        action='store_true', default=False, help='Supplied password is '
+        'already hashed and in format <auth_type>:<hashed_password>')
     parser.add_option('-A', '--admin-url', dest='admin_url',
         default='http://127.0.0.1:8080/auth/', help='The URL to the auth '
         'subsystem (default: http://127.0.0.1:8080/auth/')
@@ -91,12 +94,15 @@ if __name__ == '__main__':
     path = '%sv2/%s/%s' % (parsed_path, account, user)
     headers = {'X-Auth-Admin-User': options.admin_user,
                'X-Auth-Admin-Key': options.admin_key,
-               'X-Auth-User-Key': password,
                'Content-Length': '0'}
     if options.admin:
         headers['X-Auth-User-Admin'] = 'true'
     if options.reseller_admin:
         headers['X-Auth-User-Reseller-Admin'] = 'true'
+    if options.password_hashed:
+        headers['X-Auth-User-Key-Hash'] = password
+    else:
+        headers['X-Auth-User-Key'] = password
     conn = http_connect(parsed.hostname, parsed.port, 'PUT', path, headers,
                         ssl=(parsed.scheme == 'https'))
     resp = conn.getresponse()
