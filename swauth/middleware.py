@@ -1038,6 +1038,8 @@ class Swauth(object):
         account.
 
         X-Auth-User-Key represents the user's key (url encoded),
+        - OR -
+        X-Auth-User-Key-Hash represents the user's hashed key (url encoded),
         X-Auth-User-Admin may be set to `true` to create an account .admin, and
         X-Auth-User-Reseller-Admin may be set to `true` to create a
         .reseller_admin.
@@ -1062,14 +1064,22 @@ class Swauth(object):
         account = req.path_info_pop()
         user = req.path_info_pop()
         key = unquote(req.headers.get('x-auth-user-key', ''))
+        key_hash = unquote(req.headers.get('x-auth-user-key-hash', ''))
         admin = req.headers.get('x-auth-user-admin') == 'true'
         reseller_admin = \
             req.headers.get('x-auth-user-reseller-admin') == 'true'
         if reseller_admin:
             admin = True
         if req.path_info or not account or account[0] == '.' or not user or \
-                user[0] == '.' or not key:
+                user[0] == '.' or (not key and not key_hash):
             return HTTPBadRequest(request=req)
+        if key_hash:
+            if ':' not in key_hash:
+                return HTTPBadRequest(request=req)
+            auth_type, hash = key_hash.split(':')
+            if getattr(swauth.authtypes, auth_type.title(), None) is None:
+                return HTTPBadRequest(request=req)
+
         user_arg = account + ':' + user
         if reseller_admin:
             if not self.is_super_admin(req) and\
@@ -1095,7 +1105,7 @@ class Swauth(object):
             groups.append('.admin')
         if reseller_admin:
             groups.append('.reseller_admin')
-        auth_value = self.auth_encoder().encode(key)
+        auth_value = key_hash or self.auth_encoder().encode(key)
         resp = self.make_pre_authed_request(
             req.environ, 'PUT', path,
             json.dumps({'auth': auth_value,

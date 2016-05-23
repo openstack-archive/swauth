@@ -287,7 +287,9 @@ A user can be created with a PUT request against a non-existent
 user URI.  The new user's password must be set using the
 ``X-Auth-User-Key`` header.  The user name MUST NOT start with a
 period ('.').  This requirement is enforced by the API, and will
-result in a 400 error.
+result in a 400 error. Alternatively you can use
+``X-Auth-User-Key-Hash`` header for providing already hashed
+password in format ``<auth_type>:<hashed_password>``.
 
 Optional Headers:
 
