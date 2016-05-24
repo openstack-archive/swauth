@@ -1074,10 +1074,9 @@ class Swauth(object):
                 user[0] == '.' or (not key and not key_hash):
             return HTTPBadRequest(request=req)
         if key_hash:
-            if ':' not in key_hash:
-                return HTTPBadRequest(request=req)
-            auth_type, hash = key_hash.split(':')
-            if getattr(swauth.authtypes, auth_type.title(), None) is None:
+            try:
+                swauth.authtypes.validate_creds(key_hash)
+            except ValueError:
                 return HTTPBadRequest(request=req)
 
         user_arg = account + ':' + user
@@ -1540,12 +1539,13 @@ class Swauth(object):
         """
         if user_detail:
             creds = user_detail.get('auth')
-            auth_type = creds.split(':')[0]
-            auth_encoder = getattr(swauth.authtypes, auth_type.title(), None)
-            if auth_encoder is None:
-                self.logger.error('Invalid auth_type %s' % auth_type)
+            try:
+                auth_encoder, creds_dict = \
+                    swauth.authtypes.validate_creds(creds)
+            except ValueError as e:
+                self.logger.error('%s' % e.args[0])
                 return False
-        return user_detail and auth_encoder().match(key, creds)
+        return user_detail and auth_encoder.match(key, creds, **creds_dict)
 
     def is_user_changing_own_key(self, req, user):
         """Check if the user is changing his own key.

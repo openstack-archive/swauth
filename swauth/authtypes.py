@@ -31,10 +31,32 @@ conditions:
 
 import hashlib
 import os
+import sys
 
 
 #: Maximum length any valid token should ever be.
 MAX_TOKEN_LENGTH = 5000
+
+
+def validate_creds(creds):
+    """Parse and validate user credentials whether format is right
+
+    :param creds: User credentials
+    :returns: Auth_type class instance and parsed user credentials in dict
+    :raises ValueError: If credential format is wrong (eg: bad auth_type)
+    """
+    try:
+        auth_type, auth_rest = creds.split(':', 1)
+    except ValueError:
+        raise ValueError("Missing ':' in %s" % creds)
+    authtypes = sys.modules[__name__]
+    auth_encoder = getattr(authtypes, auth_type.title(), None)
+    if auth_encoder is None:
+        raise ValueError('Invalid auth_type: %s' % auth_type)
+    auth_encoder = auth_encoder()
+    parsed_creds = dict(type=auth_type, salt=None, hash=None)
+    parsed_creds.update(auth_encoder.validate(auth_rest))
+    return auth_encoder, parsed_creds
 
 
 class Plaintext(object):
@@ -54,14 +76,27 @@ class Plaintext(object):
         """
         return "plaintext:%s" % key
 
-    def match(self, key, creds):
+    def match(self, key, creds, **kwargs):
         """Checks whether the user-provided key matches the user's credentials
 
         :param key: User-supplied key
         :param creds: User's stored credentials
+        :param kwargs: Extra keyword args for compatibility reason with
+                       other auth_type classes
         :returns: True if the supplied key is valid, False otherwise
         """
         return self.encode(key) == creds
+
+    def validate(self, auth_rest):
+        """Validate user credentials whether format is right for Plaintext
+
+        :param auth_rest: User credentials' part without auth_type
+        :return: Dict with a hash part of user credentials
+        :raises ValueError: If credentials' part has zero length
+        """
+        if len(auth_rest) == 0:
+            raise ValueError("Key must have non-zero length!")
+        return dict(hash=auth_rest)
 
 
 class Sha1(object):
@@ -98,18 +133,32 @@ class Sha1(object):
         salt = self.salt or os.urandom(32).encode('base64').rstrip()
         return self.encode_w_salt(salt, key)
 
-    def match(self, key, creds):
+    def match(self, key, creds, salt, **kwargs):
         """Checks whether the user-provided key matches the user's credentials
 
         :param key: User-supplied key
         :param creds: User's stored credentials
+        :param salt: Salt for hashing
+        :param kwargs: Extra keyword args for compatibility reason with
+                       other auth_type classes
         :returns: True if the supplied key is valid, False otherwise
         """
-
-        type, rest = creds.split(':')
-        salt, enc = rest.split('$')
-
         return self.encode_w_salt(salt, key) == creds
+
+    def validate(self, auth_rest):
+        """Validate user credentials whether format is right for Sha1
+
+        :param auth_rest: User credentials' part without auth_type
+        :return: Dict with a hash and a salt part of user credentials
+        :raises ValueError: If credentials' part doesn't contain delimiter
+                            between a salt and a hash.
+        """
+        try:
+            auth_salt, auth_hash = auth_rest.split('$')
+        except ValueError:
+            raise ValueError("Missing '$' in %s" % auth_rest)
+
+        return dict(salt=auth_salt, hash=auth_hash)
 
 
 class Sha512(object):
@@ -146,15 +195,28 @@ class Sha512(object):
         salt = self.salt or os.urandom(32).encode('base64').rstrip()
         return self.encode_w_salt(salt, key)
 
-    def match(self, key, creds):
+    def match(self, key, creds, salt, **kwargs):
         """Checks whether the user-provided key matches the user's credentials
 
         :param key: User-supplied key
         :param creds: User's stored credentials
+        :param salt: Salt for hashing
+        :param kwargs: Extra keyword args for compatibility reason with
+                       other auth_type classes
         :returns: True if the supplied key is valid, False otherwise
         """
-
-        type, rest = creds.split(':')
-        salt, enc = rest.split('$')
-
         return self.encode_w_salt(salt, key) == creds
+
+    def validate(self, auth_rest):
+        """Validate user credentials whether format is right for Sha512
+
+        :param auth_rest: User credentials' part without auth_type
+        :return: Dict with a hash and a salt part of user credentials
+        :raises ValueError: If credentials' part doesn't contain delimiter
+                            between a salt and a hash.
+        """
+        try:
+            auth_salt, auth_hash = auth_rest.split('$')
+        except ValueError:
+            raise ValueError("Missing '$' in %s" % auth_rest)
+        return dict(salt=auth_salt, hash=auth_hash)
