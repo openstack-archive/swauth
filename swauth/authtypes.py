@@ -31,10 +31,26 @@ conditions:
 
 import hashlib
 import os
+import sys
 
 
 #: Maximum length any valid token should ever be.
 MAX_TOKEN_LENGTH = 5000
+
+
+def validate_creds(creds):
+    try:
+        auth_type, auth_rest = creds.split(':')
+    except ValueError:
+        raise ValueError("Missing ':' in %s" % creds)
+    authtypes = sys.modules[__name__]
+    auth_encoder = getattr(authtypes, auth_type.title(), None)
+    if auth_encoder is None:
+        raise ValueError('Invalid auth_type: %s' % auth_type)
+    auth_encoder = auth_encoder()
+    result = dict(type=auth_type, cls=auth_encoder, salt=None, hash=None)
+    result.update(auth_encoder.validate(auth_rest))
+    return result
 
 
 class Plaintext(object):
@@ -62,6 +78,11 @@ class Plaintext(object):
         :returns: True if the supplied key is valid, False otherwise
         """
         return self.encode(key) == creds
+
+    def validate(self, auth_rest):
+        if len(auth_rest) == 0:
+            raise ValueError("Key must have non-zero length!")
+        return dict(hash=auth_rest)
 
 
 class Sha1(object):
@@ -108,8 +129,18 @@ class Sha1(object):
 
         type, rest = creds.split(':')
         salt, enc = rest.split('$')
+        # TODO(peterlisak) replace with
+        # ... validate(creds) ...
 
         return self.encode_w_salt(salt, key) == creds
+
+    def validate(self, auth_rest):
+        try:
+            auth_salt, auth_hash = auth_rest.split('$')
+        except ValueError:
+            raise ValueError("Missing '$' in %s" % auth_rest)
+
+        return dict(salt=auth_salt, hash=auth_hash)
 
 
 class Sha512(object):
@@ -156,5 +187,14 @@ class Sha512(object):
 
         type, rest = creds.split(':')
         salt, enc = rest.split('$')
+        # TODO(peterlisak) replace with
+        # ... validate(creds) ...
 
         return self.encode_w_salt(salt, key) == creds
+
+    def validate(self, auth_rest):
+        try:
+            auth_salt, auth_hash = auth_rest.split('$')
+        except ValueError:
+            raise ValueError("Missing '$' in %s" % auth_rest)
+        return dict(salt=auth_salt, hash=auth_hash)
