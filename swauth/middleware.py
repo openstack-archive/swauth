@@ -1531,6 +1531,8 @@ class Swauth(object):
         if user_detail:
             creds = user_detail.get('auth')
             auth_type = creds.split(':')[0]
+            # TODO(peterlisak) replace with
+            # ... validate(creds) ...
             auth_encoder = getattr(swauth.authtypes, auth_type.title(), None)
             if auth_encoder is None:
                 self.logger.error('Invalid auth_type %s' % auth_type)
