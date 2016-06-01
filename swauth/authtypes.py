@@ -31,6 +31,7 @@ conditions:
 
 import hashlib
 import os
+import string
 import sys
 
 
@@ -158,6 +159,13 @@ class Sha1(object):
         except ValueError:
             raise ValueError("Missing '$' in %s" % auth_rest)
 
+        if len(auth_salt) == 0:
+            raise ValueError("Salt must have non-zero length!")
+        if len(auth_hash) != 40:
+            raise ValueError("Hash must have 40 chars!")
+        if not all(c in string.hexdigits for c in auth_hash):
+            raise ValueError("Hash must be hexadecimal!")
+
         return dict(salt=auth_salt, hash=auth_hash)
 
 
@@ -219,4 +227,12 @@ class Sha512(object):
             auth_salt, auth_hash = auth_rest.split('$')
         except ValueError:
             raise ValueError("Missing '$' in %s" % auth_rest)
+
+        if len(auth_salt) == 0:
+            raise ValueError("Salt must have non-zero length!")
+        if len(auth_hash) != 128:
+            raise ValueError("Hash must have 128 chars!")
+        if not all(c in string.hexdigits for c in auth_hash):
+            raise ValueError("Hash must be hexadecimal!")
+
         return dict(salt=auth_salt, hash=auth_hash)
