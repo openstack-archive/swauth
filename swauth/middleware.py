@@ -344,8 +344,16 @@ class Swauth(object):
             env['PATH_INFO'] = path.replace("%s:%s" % (account, user),
                                             account_id, 1)
             detail = json.loads(resp.body)
+            if detail:
+                creds = detail.get('auth')
+                try:
+                    auth_encoder, creds_dict = \
+                        swauth.authtypes.validate_creds(creds)
+                except ValueError as e:
+                    self.logger.error('%s' % e.args[0])
+                    return None
 
-            password = detail['auth'].split(':')[-1]
+            password = creds_dict['hash']
             msg = base64.urlsafe_b64decode(unquote(token))
 
             # https://bugs.python.org/issue5285
