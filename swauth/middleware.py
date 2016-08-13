@@ -30,6 +30,7 @@ from uuid import uuid4
 
 from eventlet.timeout import Timeout
 from eventlet import TimeoutError
+from six.moves import xrange
 from swift.common.swob import HTTPAccepted
 from swift.common.swob import HTTPBadRequest
 from swift.common.swob import HTTPConflict

@@ -21,6 +21,7 @@ import gettext
 import json
 from optparse import OptionParser
 import re
+from six.moves import xrange
 from sys import argv
 from sys import exit
 from time import sleep

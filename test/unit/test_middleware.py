@@ -21,6 +21,7 @@ from time import time
 import unittest
 from urllib import quote
 
+from six.moves import xrange
 from swift.common.swob import Request
 from swift.common.swob import Response
 
