@@ -1,3 +1,19 @@
+swauth (1.2.0)
+
+    Allow to set password by hash
+
+    Allow to set hash salt in config for S3 compatibility
+
+    Due to security reason, S3 support is disabled by default
+
+    Salt is not included in S3 HMAC computation
+
+    Use correct content type on JSON responses
+
+    Fix changing of auth_type in existing deployments
+
+    Remove outdated locale
+
 swauth (1.1.0)
 
     This is first release after move to OpenStack Infra
