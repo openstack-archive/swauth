@@ -78,10 +78,7 @@ class Swauth(object):
         if not swift_version.at_least(SWIFT_MIN_VERSION):
             msg = ("Your Swift installation is too old (%s). You need at "
                    "least %s." % (swift.__version__, SWIFT_MIN_VERSION))
-            try:
-                self.logger.critical(msg)
-            except Exception:
-                pass
+            self.logger.critical(msg)
             raise ValueError(msg)
         self.log_headers = conf.get('log_headers', 'no').lower() in TRUE_VALUES
         self.reseller_prefix = conf.get('reseller_prefix', 'AUTH').strip()
@@ -99,20 +96,14 @@ class Swauth(object):
             self.swauth_remote = self.swauth_remote.rstrip('/')
             if not self.swauth_remote:
                 msg = _('Invalid swauth_remote set in conf file! Exiting.')
-                try:
-                    self.logger.critical(msg)
-                except Exception:
-                    pass
+                self.logger.critical(msg)
                 raise ValueError(msg)
             self.swauth_remote_parsed = urlparse(self.swauth_remote)
             if self.swauth_remote_parsed.scheme not in ('http', 'https'):
                 msg = _('Cannot handle protocol scheme %(schema)s '
                         'for url %(url)s!') % \
                    (self.swauth_remote_parsed.scheme, repr(self.swauth_remote))
-                try:
-                    self.logger.critical(msg)
-                except Exception:
-                    pass
+                self.logger.critical(msg)
                 raise ValueError(msg)
         self.swauth_remote_timeout = int(conf.get('swauth_remote_timeout', 10))
         self.auth_account = '%s.auth' % self.reseller_prefix
@@ -146,10 +137,7 @@ class Swauth(object):
         if not self.super_admin_key and not self.swauth_remote:
             msg = _('No super_admin_key set in conf file; Swauth '
                     'administration features will be disabled.')
-            try:
-                self.logger.warning(msg)
-            except Exception:
-                pass
+            self.logger.warning(msg)
         self.token_life = int(conf.get('token_life', 86400))
         self.max_token_life = int(conf.get('max_token_life', self.token_life))
         self.timeout = int(conf.get('node_timeout', 10))
