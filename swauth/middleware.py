@@ -1566,7 +1566,7 @@ class Swauth(object):
                     and x-auth-admin-key headers which are credentials of the
                     user sending the request.
         :param user: User whose password is to be changed.
-        :returns True if user is changing his own key, False if not.
+        :returns: True if user is changing his own key, False if not.
         """
         admin_detail = self.get_admin_detail(req)
         if not admin_detail:
