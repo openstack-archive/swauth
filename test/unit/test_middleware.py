@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 from contextlib import contextmanager
 import hashlib
 import json
@@ -4065,15 +4066,15 @@ class TestAuth(unittest.TestCase):
 
     def test_s3_authorization_default_off(self):
         self.assertFalse(self.test_auth.s3_support)
-        req = self._make_request('/v1/AUTH_account', headers={
-            'authorization': 's3_header'})
+        req = self._make_request('/v1/AUTH_account', environ={
+            'swift3.auth_details': {'unused': 'stuff'}})
         resp = req.get_response(self.test_auth)
         self.assertEqual(resp.status_int, 400)  # HTTPBadRequest
         self.assertTrue(resp.environ.get('swift.authorize') is None)
 
     def test_s3_turned_off_get_groups(self):
-        env = \
-            {'HTTP_AUTHORIZATION': 's3 header'}
+        env = {
+            'swift3.auth_details': {'unused': 'stuff'}}
         token = 'whatever'
         self.test_auth.logger = mock.Mock()
         self.assertEqual(self.test_auth.get_groups(env, token), None)
@@ -4086,7 +4087,7 @@ class TestAuth(unittest.TestCase):
             auth.filter_factory({'default_storage_policy': 'ssd'})(FakeApp())
         self.assertEqual(ath.default_storage_policy, 'ssd')
 
-    def test_s3_creds_unicode(self):
+    def test_s3_creds_unicode_bad(self):
         self.test_auth.s3_support = True
         self.test_auth.app = FakeApp(iter([
             ('200 Ok', {},
@@ -4095,11 +4096,37 @@ class TestAuth(unittest.TestCase):
                                     {'name': ".admin"}]})),
             ('204 Ok', {'X-Container-Meta-Account-Id': 'AUTH_act'}, '')]))
         env = \
-            {'HTTP_AUTHORIZATION': 'AWS act:user:3yW7oFFWOn+fhHMu7E47RKotL1Q=',
+            {'swift3.auth_details': {
+                'access_key': 'act:user',
+                # NOTE: signature uses password of 'key', not 'key)'
+                'signature': '3yW7oFFWOn+fhHMu7E47RKotL1Q=',
+                'string_to_sign': base64.urlsafe_b64decode(
+                    'UFVUCgoKRnJpLCAyNiBGZWIgMjAxNiAwNjo0NT'
+                    'ozNCArMDAwMAovY29udGFpbmVyMw==')},
+             'PATH_INFO': '/v1/AUTH_act/c1'}
+        token = 'not used'
+        self.assertEqual(self.test_auth.get_groups(env, token), None)
+
+    def test_s3_creds_unicode_good(self):
+        self.test_auth.s3_support = True
+        self.test_auth.app = FakeApp(iter([
+            ('200 Ok', {},
+             json.dumps({"auth": unicode("plaintext:key)"),
+                         "groups": [{'name': "act:usr"}, {'name': "act"},
+                                    {'name': ".admin"}]})),
+            ('204 Ok', {'X-Container-Meta-Account-Id': 'AUTH_act'}, '')]))
+        env = \
+            {'swift3.auth_details': {
+                'access_key': 'act:user',
+                'signature': 'dElf49mbXP8t7F+P1qXZzaf3a50=',
+                'string_to_sign': base64.urlsafe_b64decode(
+                    'UFVUCgoKRnJpLCAyNiBGZWIgMjAxNiAwNjo0NT'
+                    'ozNCArMDAwMAovY29udGFpbmVyMw==')},
              'PATH_INFO': '/v1/AUTH_act/c1'}
         token = 'UFVUCgoKRnJpLCAyNiBGZWIgMjAxNiAwNjo0NT'\
                 'ozNCArMDAwMAovY29udGFpbmVyMw=='
-        self.assertEqual(self.test_auth.get_groups(env, token), None)
+        self.assertEqual(self.test_auth.get_groups(env, token),
+                         'act:usr,act,AUTH_act')
 
     def test_s3_only_hash_passed_to_hmac(self):
         self.test_auth.s3_support = True
@@ -4114,10 +4141,14 @@ class TestAuth(unittest.TestCase):
                                     {'name': ".admin"}]})),
             ('204 Ok', {'X-Container-Meta-Account-Id': 'AUTH_act'}, '')]))
         env = \
-            {'HTTP_AUTHORIZATION': 'AWS act:user:whatever',
+            {'swift3.auth_details': {
+                'access_key': 'act:user',
+                'signature': 'whatever',
+                'string_to_sign': base64.urlsafe_b64decode(
+                    'UFVUCgoKRnJpLCAyNiBGZWIgMjAxNiAwNjo0NT'
+                    'ozNCArMDAwMAovY29udGFpbmVyMw==')},
              'PATH_INFO': '/v1/AUTH_act/c1'}
-        token = 'UFVUCgoKRnJpLCAyNiBGZWIgMjAxNiAwNjo0NT'\
-                'ozNCArMDAwMAovY29udGFpbmVyMw=='
+        token = 'not used'
         mock_hmac_new = mock.MagicMock()
         with mock.patch('hmac.new', mock_hmac_new):
             self.test_auth.get_groups(env, token)
