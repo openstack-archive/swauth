@@ -232,7 +232,7 @@ class Swauth(object):
                                                             start_response)
             elif env.get('PATH_INFO', '').startswith(self.auth_prefix):
                 return self.handle(env, start_response)
-        s3 = env.get('HTTP_AUTHORIZATION')
+        s3 = env.get('swift3.auth_details')
         if s3 and not self.s3_support:
             msg = 'S3 support is disabled in swauth.'
             return HTTPBadRequest(body=msg)(env, start_response)
@@ -322,7 +322,8 @@ class Swauth(object):
                 if expires < time():
                     groups = None
 
-        if env.get('HTTP_AUTHORIZATION'):
+        s3_auth_details = env.get('swift3.auth_details')
+        if s3_auth_details:
             if not self.s3_support:
                 self.logger.warning('S3 support is disabled in swauth.')
                 return None
@@ -333,12 +334,13 @@ class Swauth(object):
                                  'with swauth_remote mode.')
                 return None
             try:
-                account = env['HTTP_AUTHORIZATION'].split(' ')[1]
-                account, user, sign = account.split(':')
+                account, user = s3_auth_details['access_key'].split(':', 1)
+                signature_from_user = s3_auth_details['signature']
+                msg = s3_auth_details['string_to_sign']
             except Exception:
                 self.logger.debug(
-                    'Swauth cannot parse Authorization header value %r' %
-                    env['HTTP_AUTHORIZATION'])
+                    'Swauth cannot parse swift3.auth_details value %r' %
+                    (s3_auth_details, ))
                 return None
             path = quote('/v1/%s/%s/%s' % (self.auth_account, account, user))
             resp = self.make_pre_authed_request(
@@ -370,7 +372,6 @@ class Swauth(object):
                     return None
 
             password = creds_dict['hash']
-            msg = base64.urlsafe_b64decode(unquote(token))
 
             # https://bugs.python.org/issue5285
             if isinstance(password, unicode):
@@ -378,9 +379,9 @@ class Swauth(object):
             if isinstance(msg, unicode):
                 msg = msg.encode('utf-8')
 
-            s = base64.encodestring(hmac.new(password,
-                                             msg, sha1).digest()).strip()
-            if s != sign:
+            valid_signature = base64.encodestring(hmac.new(
+                password, msg, sha1).digest()).strip()
+            if signature_from_user != valid_signature:
                 return None
             groups = [g['name'] for g in detail['groups']]
             if '.admin' in groups:
