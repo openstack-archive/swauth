@@ -48,56 +48,56 @@ class TestValidation(unittest.TestCase):
     def test_validate_creds_fail(self):
         # wrong format, missing `:`
         creds = 'unknown;keystring'
-        self.assertRaisesRegexp(ValueError, "Missing ':' in .*",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Missing ':' in .*",
+                               authtypes.validate_creds, creds)
         # unknown auth_type
         creds = 'unknown:keystring'
-        self.assertRaisesRegexp(ValueError, "Invalid auth_type: .*",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Invalid auth_type: .*",
+                               authtypes.validate_creds, creds)
         # wrong plaintext keystring
         creds = 'plaintext:'
-        self.assertRaisesRegexp(ValueError, "Key must have non-zero length!",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Key must have non-zero length!",
+                               authtypes.validate_creds, creds)
         # wrong sha1 format, missing `$`
         creds = 'sha1:saltkeystring'
-        self.assertRaisesRegexp(ValueError, "Missing '\$' in .*",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Missing '\$' in .*",
+                               authtypes.validate_creds, creds)
         # wrong sha1 format, missing salt
         creds = 'sha1:$hash'
-        self.assertRaisesRegexp(ValueError, "Salt must have non-zero length!",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Salt must have non-zero length!",
+                               authtypes.validate_creds, creds)
         # wrong sha1 format, missing hash
         creds = 'sha1:salt$'
-        self.assertRaisesRegexp(ValueError, "Hash must have 40 chars!",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Hash must have 40 chars!",
+                               authtypes.validate_creds, creds)
         # wrong sha1 format, short hash
         creds = 'sha1:salt$short_hash'
-        self.assertRaisesRegexp(ValueError, "Hash must have 40 chars!",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Hash must have 40 chars!",
+                               authtypes.validate_creds, creds)
         # wrong sha1 format, wrong format
         creds = 'sha1:salt$' + "z" * 40
-        self.assertRaisesRegexp(ValueError, "Hash must be hexadecimal!",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Hash must be hexadecimal!",
+                               authtypes.validate_creds, creds)
         # wrong sha512 format, missing `$`
         creds = 'sha512:saltkeystring'
-        self.assertRaisesRegexp(ValueError, "Missing '\$' in .*",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Missing '\$' in .*",
+                               authtypes.validate_creds, creds)
         # wrong sha512 format, missing salt
         creds = 'sha512:$hash'
-        self.assertRaisesRegexp(ValueError, "Salt must have non-zero length!",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Salt must have non-zero length!",
+                               authtypes.validate_creds, creds)
         # wrong sha512 format, missing hash
         creds = 'sha512:salt$'
-        self.assertRaisesRegexp(ValueError, "Hash must have 128 chars!",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Hash must have 128 chars!",
+                               authtypes.validate_creds, creds)
         # wrong sha512 format, short hash
         creds = 'sha512:salt$short_hash'
-        self.assertRaisesRegexp(ValueError, "Hash must have 128 chars!",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Hash must have 128 chars!",
+                               authtypes.validate_creds, creds)
         # wrong sha1 format, wrong format
         creds = 'sha512:salt$' + "z" * 128
-        self.assertRaisesRegexp(ValueError, "Hash must be hexadecimal!",
-                                authtypes.validate_creds, creds)
+        self.assertRaisesRegex(ValueError, "Hash must be hexadecimal!",
+                               authtypes.validate_creds, creds)
 
 
 class TestPlaintext(unittest.TestCase):
