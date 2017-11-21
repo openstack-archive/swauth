@@ -4125,6 +4125,42 @@ class TestAuth(unittest.TestCase):
         # Assert that string passed to hmac.new is only the hash
         self.assertEqual(mock_hmac_new.call_args[0][0], key_hash)
 
+    def test_get_concealed_token(self):
+        auth.HASH_PATH_PREFIX = 'start'
+        auth.HASH_PATH_SUFFIX = 'end'
+        token = 'token'
+
+        # Check sha512 of "start:token:end"
+        hashed_token = self.test_auth._get_concealed_token(token)
+        self.assertEqual(hashed_token,
+                'cb320540b0b4c69eb83de2ffb80714cb6766e2d06b5579d1a35a9c4c3fb62'
+                '981ec50bcc3fb94521133e69a87d1efcb83efd78f35a06b6375e410201476'
+                '0722f6')
+
+        # Check sha512 of "start:token2:end"
+        token = 'token2'
+        hashed_token = self.test_auth._get_concealed_token(token)
+        self.assertEqual(hashed_token,
+                'ca400a6f884c168357f6af0609fda66aecd5aa613147167487495dd9f39fd'
+                '8a77288568e65857294f01e398d7f14328e855f18517ccf94185d849e7f34'
+                'f4259d')
+
+        # Check sha512 of "start2:token2:end"
+        auth.HASH_PATH_PREFIX = 'start2'
+        hashed_token = self.test_auth._get_concealed_token(token)
+        self.assertEqual(hashed_token,
+                'ad594a69f44dd6e0aad54e360b01f15bd4833ccb4dcd9116d7aba0c25fb95'
+                '670155b8cc7175def7aeeb4624a0f2bb7da5f0b204a4680ea7947d3d6a045'
+                '22bdde')
+
+        # Check sha512 of "start2:token2:end2"
+        auth.HASH_PATH_SUFFIX = 'end2'
+        hashed_token = self.test_auth._get_concealed_token(token)
+        self.assertEqual(hashed_token,
+                '446af2473ad6b28319a0fe02719a9d715b9941d12e0709851aedb4f53b890'
+                '693e7f1328e68d870fe114f35f4ed9648b16a5013182db50d3d1f79a660f2'
+                '0e078e')
+
 
 if __name__ == '__main__':
     unittest.main()

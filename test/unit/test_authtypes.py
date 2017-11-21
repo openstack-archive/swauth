@@ -202,5 +202,6 @@ class TestSha512(unittest.TestCase):
         match = self.auth_encoder.match('keystring2', creds, **creds_dict)
         self.assertEqual(match, False)
 
+
 if __name__ == '__main__':
     unittest.main()
