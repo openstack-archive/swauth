@@ -26,7 +26,7 @@ Before discussing how to install Swauth within a Swift system, it might help to 
 
 2.  It intercepts requests to ``/auth/`` (by default).
 
-3.  It also uses Swift's `authorize callback <https://docs.openstack.org/developer/swift/development_auth.html>`_ and `acl callback <https://docs.openstack.org/developer/swift/misc.html#module-swift.common.middleware.acl>`_ features to authorize Swift requests.
+3.  It also uses Swift's `authorize callback <https://docs.openstack.org/swift/latest/development_auth.html>`_ and `acl callback <https://docs.openstack.org/swift/latest/misc.html#acl>`_ features to authorize Swift requests.
 
 4.  Swauth will also make various internal calls to the Swift WSGI pipeline it's installed in to manipulate containers and objects within an ``AUTH_.auth`` (by default) Swift account. These containers and objects are what store account and user information.
 
