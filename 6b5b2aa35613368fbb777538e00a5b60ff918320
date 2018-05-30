@@ -1,0 +1,10 @@
+Code-Review+1: kaka <huang.zhiping@99cloud.net>
+Code-Review+1: Nguyen Hai <nguyentrihai93@gmail.com>
+Code-Review+2: Ondřej Nový <novy@ondrej.org>
+Workflow+1: Ondřej Nový <novy@ondrej.org>
+Verified+2: Zuul
+Submitted-by: Zuul
+Submitted-at: Wed, 30 May 2018 09:50:50 +0000
+Reviewed-on: https://review.openstack.org/560543
+Project: openstack/swauth
+Branch: refs/heads/master
