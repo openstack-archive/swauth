@@ -20,6 +20,7 @@ import hmac
 from httplib import HTTPConnection
 from httplib import HTTPSConnection
 import json
+import six
 import swift
 from time import gmtime
 from time import strftime
@@ -374,9 +375,9 @@ class Swauth(object):
             password = creds_dict['hash']
 
             # https://bugs.python.org/issue5285
-            if isinstance(password, unicode):
+            if isinstance(password, six.text_type):
                 password = password.encode('utf-8')
-            if isinstance(msg, unicode):
+            if isinstance(msg, six.text_type):
                 msg = msg.encode('utf-8')
 
             valid_signature = base64.encodestring(hmac.new(
