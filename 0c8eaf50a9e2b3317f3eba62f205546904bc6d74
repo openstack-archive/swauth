@@ -1,0 +1,10 @@
+Code-Review+1: Nguyen Van Trung <trungnv@vn.fujitsu.com>
+Code-Review+1: Clay Gerrard <clay.gerrard@gmail.com>
+Code-Review+2: Ondřej Nový <novy@ondrej.org>
+Workflow+1: Ondřej Nový <novy@ondrej.org>
+Verified+2: Zuul
+Submitted-by: Zuul
+Submitted-at: Fri, 27 Jul 2018 09:18:24 +0000
+Reviewed-on: https://review.openstack.org/580278
+Project: openstack/swauth
+Branch: refs/heads/master
