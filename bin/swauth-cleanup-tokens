@@ -99,7 +99,7 @@ if __name__ == '__main__':
         if options.verbose:
             print('Done.')
         exit(0)
-    for x in xrange(16):
+    for x in range(16):
         container = '.token_%x' % x
         marker = None
         while True:
