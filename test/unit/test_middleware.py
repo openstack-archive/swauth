@@ -18,9 +18,10 @@ from contextlib import contextmanager
 import hashlib
 import json
 import mock
+import six
+from six.moves.urllib.parse import quote
 from time import time
 import unittest
-from urllib import quote
 
 from swift.common.swob import Request
 from swift.common.swob import Response
@@ -83,7 +84,7 @@ class FakeApp(object):
             resp = env['swift.authorize'](self.request)
             if resp:
                 return resp(env, start_response)
-        status, headers, body = self.status_headers_body_iter.next()
+        status, headers, body = next(self.status_headers_body_iter)
         return Response(status=status, headers=headers,
                         body=body)(env, start_response)
 
@@ -100,7 +101,7 @@ class FakeConn(object):
         self.calls += 1
         self.request_path = path
         self.status, self.headers, self.body = \
-            self.status_headers_body_iter.next()
+            next(self.status_headers_body_iter)
         self.status, self.reason = self.status.split(' ', 1)
         self.status = int(self.status)
 
@@ -1103,7 +1104,7 @@ class TestAuth(unittest.TestCase):
             # PUT of .account_id container
             ('201 Created', {}, '')]
         # PUT of .token* containers
-        for x in xrange(16):
+        for x in range(16):
             list_to_iter.append(('201 Created', {}, ''))
         self.test_auth.app = FakeApp(iter(list_to_iter))
         resp = Request.blank('/auth/v2/.prep',
@@ -4091,7 +4092,7 @@ class TestAuth(unittest.TestCase):
         self.test_auth.s3_support = True
         self.test_auth.app = FakeApp(iter([
             ('200 Ok', {},
-             json.dumps({"auth": unicode("plaintext:key)"),
+             json.dumps({"auth": six.text_type("plaintext:key)"),
                          "groups": [{'name': "act:usr"}, {'name': "act"},
                                     {'name': ".admin"}]})),
             ('204 Ok', {'X-Container-Meta-Account-Id': 'AUTH_act'}, '')]))
@@ -4111,7 +4112,7 @@ class TestAuth(unittest.TestCase):
         self.test_auth.s3_support = True
         self.test_auth.app = FakeApp(iter([
             ('200 Ok', {},
-             json.dumps({"auth": unicode("plaintext:key)"),
+             json.dumps({"auth": six.text_type("plaintext:key)"),
                          "groups": [{'name': "act:usr"}, {'name': "act"},
                                     {'name': ".admin"}]})),
             ('204 Ok', {'X-Container-Meta-Account-Id': 'AUTH_act'}, '')]))

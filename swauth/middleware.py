@@ -17,17 +17,17 @@ import base64
 from hashlib import sha1
 from hashlib import sha512
 import hmac
-from httplib import HTTPConnection
-from httplib import HTTPSConnection
 import json
 import six
+from six.moves.http_client import HTTPConnection
+from six.moves.http_client import HTTPSConnection
+from six.moves.urllib.parse import quote
+from six.moves.urllib.parse import unquote
 import swift
 from time import gmtime
 from time import strftime
 from time import time
 from traceback import format_exc
-from urllib import quote
-from urllib import unquote
 from uuid import uuid4
 
 from eventlet.timeout import Timeout
@@ -607,7 +607,7 @@ class Swauth(object):
         if resp.status_int // 100 != 2:
             raise Exception('Could not create container: %s %s' %
                             (path, resp.status))
-        for container in xrange(16):
+        for container in range(16):
             path = quote('/v1/%s/.token_%x' % (self.auth_account, container))
             resp = self.make_pre_authed_request(
                 req.environ, 'PUT', path).get_response(self.app)
@@ -768,7 +768,7 @@ class Swauth(object):
             raise Exception('Could not obtain services info: %s %s' %
                             (path, resp.status))
         services = json.loads(resp.body)
-        for new_service, value in new_services.iteritems():
+        for new_service, value in new_services.items():
             if new_service in services:
                 services[new_service].update(value)
             else:
@@ -916,7 +916,7 @@ class Swauth(object):
             services = json.loads(resp.body)
             # Delete the account on each cluster it is on.
             deleted_any = False
-            for name, url in services['storage'].iteritems():
+            for name, url in services['storage'].items():
                 if name != 'default':
                     parsed = urlparse(url)
                     conn = self.get_conn(parsed)
