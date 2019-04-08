@@ -99,7 +99,7 @@ if __name__ == '__main__':
         if options.verbose:
             print('Done.')
         exit(0)
-    for x in xrange(16):
+    for x in range(16):
         container = '.token_%x' % x
         marker = None
         while True:
@@ -132,7 +132,7 @@ if __name__ == '__main__':
                         if err.http_status != 404:
                             raise
                     continue
-                last_modified = datetime(*map(int, re.split('[^\d]',
+                last_modified = datetime(*map(int, re.split(r'[^\d]',
                                               obj['last_modified'])[:-1]))
                 ago = datetime.utcnow() - last_modified
                 if ago > options.token_life:

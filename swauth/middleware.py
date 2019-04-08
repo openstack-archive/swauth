@@ -21,6 +21,7 @@ from httplib import HTTPConnection
 from httplib import HTTPSConnection
 import json
 import six
+from six.moves.urllib.parse import urlparse
 import swift
 from time import gmtime
 from time import strftime
@@ -56,7 +57,6 @@ from swift.common.utils import HASH_PATH_PREFIX
 from swift.common.utils import HASH_PATH_SUFFIX
 from swift.common.utils import split_path
 from swift.common.utils import TRUE_VALUES
-from swift.common.utils import urlparse
 import swift.common.wsgi
 
 import swauth.authtypes

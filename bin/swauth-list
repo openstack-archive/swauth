@@ -21,8 +21,8 @@ from optparse import OptionParser
 from sys import argv
 from sys import exit
 
+from six.moves.urllib.parse import urlparse
 from swift.common.bufferedhttp import http_connect_raw as http_connect
-from swift.common.utils import urlparse
 
 
 if __name__ == '__main__':
